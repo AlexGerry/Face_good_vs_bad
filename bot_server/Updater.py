@@ -54,6 +54,6 @@ class Updater:
             if self.waitingTime > 0:
                 time.sleep(self.waitingTime)
 
-if __name__ == "__main__":
-    updater = Updater('128366843:AAHovviK9AQDbcWJkM9JkqDAt8B5oLUUCQI')
-    updater.start()
+#if __name__ == "__main__":
+#    updater = Updater('128366843:AAHovviK9AQDbcWJkM9JkqDAt8B5oLUUCQI')
+#    updater.start()
