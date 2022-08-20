@@ -15,9 +15,10 @@ from sklearn.metrics import classification_report, confusion_matrix
 
 SEED = 42
 DATASET_PATH = "../../../dataset/"
-EPOCHS = 50
-BATCH_SIZE = 16
+EPOCHS = 150
+BATCH_SIZE = 32
 AUTOTUNE = tf.data.AUTOTUNE
+INPUT_SHAPE = (224, 224, 3, )
 
 
 def plot_history(history, x_plot, name="plot.png"):
@@ -61,7 +62,7 @@ def create_model(tipo):
     if tipo == "scratch_model":
         model = keras.Sequential(
             [
-                keras.Input(shape=(224, 224, 3, )),
+                keras.Input(shape=INPUT_SHAPE),
                 layers.Conv2D(32, kernel_size=(3, 3), activation="relu", strides=(1, 1)),
                 #layers.BatchNormalization(),
                 layers.MaxPooling2D(pool_size=(2, 2)),
@@ -73,8 +74,7 @@ def create_model(tipo):
                 layers.MaxPooling2D(pool_size=(2, 2)),
                 layers.Conv2D(256, kernel_size=(3, 3), activation="relu", strides=(1, 1)),
                 layers.BatchNormalization(),
-                layers.MaxPooling2D(pool_size=(2, 2)),
-                layers.Flatten(),
+                layers.GlobalAveragePooling2D(),
                 layers.Dense(128, activation='relu'),
                 layers.Dropout(0.3, seed=SEED),
                 layers.Dense(64, activation='relu'),
@@ -82,9 +82,9 @@ def create_model(tipo):
             ]
         )
     else:
-        base_mobilenet = MobileNetV2(weights="imagenet", include_top=False)
+        base_mobilenet = MobileNetV2(weights="imagenet", include_top=False, input_shape=INPUT_SHAPE)
         base_mobilenet.trainable = False    # Freeze weights
-        inputs = keras.Input(shape=(224, 224, 3))
+        inputs = keras.Input(shape=INPUT_SHAPE)
         x = mobilenet_preprocessing(inputs)
         x = base_mobilenet(x, training=False)
         x = layers.GlobalAveragePooling2D()(x)
@@ -122,12 +122,12 @@ def prepare_dataset(dataset, augment=False):
 def train(model, train_dataset, validation_dataset, name):
     print(f"Starting training {name}...")
     # Create some callbacks to avoid overfitting
-    early_stopping = EarlyStopping(monitor="val_loss", patience=10, min_delta=0.0001, restore_best_weights=True, verbose=1)
-    lr_scheduler = ReduceLROnPlateau(monitor="val_loss", factor=0.001, patience=7, verbose=1)
+    early_stopping = EarlyStopping(monitor="val_loss", patience=12, min_delta=0.0001, restore_best_weights=True, verbose=1)
+    lr_scheduler = ReduceLROnPlateau(monitor="val_loss", factor=0.001, patience=5, verbose=1)
     callbacks = [early_stopping, lr_scheduler]
     # Compile the model
     model.compile(
-        optimizer=keras.optimizers.Adamax(learning_rate=0.001),
+        optimizer=keras.optimizers.Adamax(learning_rate=1e-3),
         loss=keras.losses.CategoricalCrossentropy(),
         metrics=["accuracy"]
         )
@@ -146,23 +146,28 @@ def train(model, train_dataset, validation_dataset, name):
 
 
 def test(model, test_dataset, name):
-    test_images, test_labels = [], []
+    X_test, y_test = [], []
     for image, label in test_dataset:
         image /= 255.
-        test_images += [image.numpy()] 
-        test_labels += [label.numpy()]
-        
-    test_images = np.array(test_images)
-    test_labels = np.array(test_labels)
+        X_test.append(image.numpy())
+        y_test.append(label.numpy())
+         
+    X_test = tf.convert_to_tensor(np.asarray(X_test, dtype='float32'))
+    y_test = np.asarray(y_test, dtype='float32')
+    
+    test_dataset = tf.data.Dataset.from_tensor_slices((X_test, y_test))
+    test_dataset = test_dataset.batch(BATCH_SIZE)
     
     # Evaluate the model
     score = model.evaluate(test_dataset)
     print(f"Test Loss: {score[0]}")
     print(f"Test Accuracy: {score[1]}")
     
-    predictions = np.argmax(model.predict(test_images), axis=1)
-    print(classification_report(test_labels, predictions))
-    plot_confusionMatrix(test_labels, predictions, name=name+"_cm.png")
+    predictions = model.predict(X_test)   
+    predictions = np.argmax(predictions, axis=1)
+    y_test = np.argmax(y_test, axis=1)
+    print(classification_report(y_test, predictions))
+    plot_confusionMatrix(y_test, predictions, name=name+"_cm.png")
 
 
 def main():
@@ -180,13 +185,7 @@ def main():
         )
     print("Train dataset loaded!")
     print("Labels in the dataset: ", train_ds.class_names)
-    #for image_batch, labels_batch in train_ds:
-    #    print("Image batch shape: ", image_batch.shape)
-    #    print(image_batch)  # can call .numpy() to convert to numpy.ndarray
-    #    print("Labels batch shape: ", labels_batch.shape)
-    #    print(labels_batch) # can call .numpy() to convert to numpy.ndarray
-    #    break
-    
+
     # Load the validation dataset
     print("Loading validation dataset...")
     val_ds = tf.keras.utils.image_dataset_from_directory(
@@ -205,14 +204,13 @@ def main():
         label_mode="categorical",
         validation_split=None,
         image_size=(224, 224),
-        batch_size=BATCH_SIZE,
+        batch_size=None,
         seed=SEED
         )
     print("Test dataset loaded!")
     print("Preparing datasets...")
     train_ds = prepare_dataset(train_ds, augment=True)
     val_ds = prepare_dataset(val_ds)
-    test_ds = prepare_dataset(test_ds)
     print("Datasets prepared!")
     
     for name in run_name:
