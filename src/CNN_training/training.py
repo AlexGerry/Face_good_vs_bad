@@ -1,5 +1,6 @@
 from email.mime import base
 import os
+from unicodedata import name
 import matplotlib.pyplot as plt
 import tensorflow as tf
 import numpy as np
@@ -7,14 +8,77 @@ import pandas as pd
 import seaborn as sns
 from tensorflow import keras
 from keras import layers
-from tensorflow.keras.applications.mobilenet_v2 import MobileNetV2
-from tensorflow.keras.applications.mobilenet_v2 import preprocess_input as mobilenet_preprocessing
+from tensorflow.keras.applications.densenet import DenseNet201
+from tensorflow.keras.applications.mobilenet import MobileNet
+from tensorflow.keras.applications.efficientnet_v2 import EfficientNetV2L
+#from tensorflow.keras.applications.densenet import preprocess_input as mobilenet_preprocessing
+#from tensorflow.keras.applications.mobilenet import preprocess_input as mobilenet_preprocessing
+from tensorflow.keras.applications.efficientnet_v2 import preprocess_input as mobilenet_preprocessing
 from keras.callbacks import EarlyStopping, ReduceLROnPlateau
 from sklearn.metrics import classification_report, confusion_matrix
 from tensorflow.keras.utils import set_random_seed
 
+def FER_Model(input_shape=(224,224,3)):
+    # first input model
+    visible = layers.Input(shape=input_shape, name='input')
+    num_classes = 2
+    #the 1-st block
+    conv1_1 = layers.Conv2D(64, kernel_size=3, activation='relu', padding='same', name = 'conv1_1')(visible)
+    conv1_1 = layers.BatchNormalization()(conv1_1)
+    conv1_2 = layers.Conv2D(64, kernel_size=3, activation='relu', padding='same', name = 'conv1_2')(conv1_1)
+    conv1_2 = layers.BatchNormalization()(conv1_2)
+    pool1_1 = layers.MaxPooling2D(pool_size=(2,2), name = 'pool1_1')(conv1_2)
+    drop1_1 = layers.Dropout(0.3, name = 'drop1_1')(pool1_1)#the 2-nd block
+    conv2_1 = layers.Conv2D(128, kernel_size=3, activation='relu', padding='same', name = 'conv2_1')(drop1_1)
+    conv2_1 = layers.BatchNormalization()(conv2_1)
+    conv2_2 = layers.Conv2D(128, kernel_size=3, activation='relu', padding='same', name = 'conv2_2')(conv2_1)
+    conv2_2 = layers.BatchNormalization()(conv2_2)
+    conv2_3 = layers.Conv2D(128, kernel_size=3, activation='relu', padding='same', name = 'conv2_3')(conv2_2)
+    conv2_2 = layers.BatchNormalization()(conv2_3)
+    pool2_1 = layers.MaxPooling2D(pool_size=(2,2), name = 'pool2_1')(conv2_3)
+    drop2_1 = layers.Dropout(0.3, name = 'drop2_1')(pool2_1)#the 3-rd block
+    conv3_1 = layers.Conv2D(256, kernel_size=3, activation='relu', padding='same', name = 'conv3_1')(drop2_1)
+    conv3_1 = layers.BatchNormalization()(conv3_1)
+    conv3_2 = layers.Conv2D(256, kernel_size=3, activation='relu', padding='same', name = 'conv3_2')(conv3_1)
+    conv3_2 = layers.BatchNormalization()(conv3_2)
+    conv3_3 = layers.Conv2D(256, kernel_size=3, activation='relu', padding='same', name = 'conv3_3')(conv3_2)
+    conv3_3 = layers.BatchNormalization()(conv3_3)
+    conv3_4 = layers.Conv2D(256, kernel_size=3, activation='relu', padding='same', name = 'conv3_4')(conv3_3)
+    conv3_4 = layers.BatchNormalization()(conv3_4)
+    pool3_1 = layers.MaxPooling2D(pool_size=(2,2), name = 'pool3_1')(conv3_4)
+    drop3_1 = layers.Dropout(0.3, name = 'drop3_1')(pool3_1)#the 4-th block
+    conv4_1 = layers.Conv2D(256, kernel_size=3, activation='relu', padding='same', name = 'conv4_1')(drop3_1)
+    conv4_1 = layers.BatchNormalization()(conv4_1)
+    conv4_2 = layers.Conv2D(256, kernel_size=3, activation='relu', padding='same', name = 'conv4_2')(conv4_1)
+    conv4_2 = layers.BatchNormalization()(conv4_2)
+    conv4_3 = layers.Conv2D(256, kernel_size=3, activation='relu', padding='same', name = 'conv4_3')(conv4_2)
+    conv4_3 = layers.BatchNormalization()(conv4_3)
+    conv4_4 = layers.Conv2D(256, kernel_size=3, activation='relu', padding='same', name = 'conv4_4')(conv4_3)
+    conv4_4 = layers.BatchNormalization()(conv4_4)
+    pool4_1 = layers.MaxPooling2D(pool_size=(2,2), name = 'pool4_1')(conv4_4)
+    drop4_1 = layers.Dropout(0.3, name = 'drop4_1')(pool4_1)
+    
+    #the 5-th block
+    conv5_1 = layers.Conv2D(512, kernel_size=3, activation='relu', padding='same', name = 'conv5_1')(drop4_1)
+    conv5_1 = layers.BatchNormalization()(conv5_1)
+    conv5_2 = layers.Conv2D(512, kernel_size=3, activation='relu', padding='same', name = 'conv5_2')(conv5_1)
+    conv5_2 = layers.BatchNormalization()(conv5_2)
+    conv5_3 = layers.Conv2D(512, kernel_size=3, activation='relu', padding='same', name = 'conv5_3')(conv5_2)
+    conv5_3 = layers.BatchNormalization()(conv5_3)
+    conv5_4 = layers.Conv2D(512, kernel_size=3, activation='relu', padding='same', name = 'conv5_4')(conv5_3)
+    conv5_3 = layers.BatchNormalization()(conv5_3)
+    pool5_1 = layers.MaxPooling2D(pool_size=(2,2), name = 'pool5_1')(conv5_4)
+    drop5_1 = layers.Dropout(0.3, name = 'drop5_1')(pool5_1)#Flatten and output
+    flatten = layers.Flatten(name = 'flatten')(drop5_1)
+    ouput = layers.Dense(num_classes, activation='softmax', name = 'output')(flatten)# create model 
+    model = keras.models.Model(inputs =visible, outputs = ouput)
+    # summary layers
+    print(model.summary())
+    
+    return model
 
-SEED = 42
+
+SEED = 30
 DATASET_PATH = "../../../dataset/"
 EPOCHS = 150
 BATCH_SIZE = 32
@@ -91,15 +155,19 @@ def create_model(tipo):
                 layers.Dense(2, activation="softmax")
             ]
         )
+    elif tipo == "FER":
+        model = FER_Model() 
     else:
-        base_mobilenet = MobileNetV2(weights="imagenet", include_top=False, input_shape=INPUT_SHAPE)
+        #base_mobilenet = DenseNet201(weights="imagenet", include_top=False, input_shape=INPUT_SHAPE)
+        #base_mobilenet = MobileNet(weights="imagenet", include_top=False, input_shape=INPUT_SHAPE)
+        base_mobilenet = EfficientNetV2L(weights="imagenet", include_top=False, input_shape=INPUT_SHAPE)
         base_mobilenet.trainable = False    # Freeze weights
         inputs = keras.Input(shape=INPUT_SHAPE)
         x = mobilenet_preprocessing(inputs)
         x = base_mobilenet(x, training=False)
-        x = layers.BatchNormalization()(x),
-        x = layers.MaxPooling2D(pool_size=(2, 2))(x),
-        x = layers.Flatten()(x),
+        #x = layers.BatchNormalization()(x)
+        #x = layers.MaxPooling2D(pool_size=(2, 2))(x)
+        x = layers.GlobalAveragePooling2D()(x)
         x = layers.Dense(128, activation='relu')(x)
         x = layers.Dropout(0.2, seed=SEED)(x)  # Regularize with dropout
         outputs = layers.Dense(2, activation="softmax")(x)
@@ -183,7 +251,7 @@ def test(model, test_dataset, name):
 
 
 def main():
-    run_name = ["scratch_model", "fine_tuned"]
+    run_name = ["fine_tuned"]
     
     # Load the training dataset
     print("Loading train dataset...")
