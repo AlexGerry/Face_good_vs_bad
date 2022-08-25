@@ -195,7 +195,7 @@ def train(model, train_dataset, validation_dataset, name):
     print(f"Starting training {name}...")
     # Create some callbacks to avoid overfitting
     early_stopping = EarlyStopping(monitor="val_loss", patience=12, min_delta=0.0001, restore_best_weights=True, verbose=1)
-    lr_scheduler = ReduceLROnPlateau(monitor="val_loss", factor=0.001, patience=5, verbose=1)
+    lr_scheduler = ReduceLROnPlateau(monitor="val_loss", factor=0.1, patience=5, verbose=1)
     callbacks = [early_stopping, lr_scheduler]
     # Compile the model
     model.compile(
