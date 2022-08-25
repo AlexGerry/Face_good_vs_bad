@@ -1,22 +1,19 @@
-from email.mime import base
 import os
-from unicodedata import name
 import matplotlib.pyplot as plt
 import tensorflow as tf
 import numpy as np
-import pandas as pd
 import seaborn as sns
 from tensorflow import keras
-from keras import layers
-from tensorflow.keras.applications.densenet import DenseNet201
-from tensorflow.keras.applications.mobilenet import MobileNet
-from tensorflow.keras.applications.efficientnet_v2 import EfficientNetV2L
-#from tensorflow.keras.applications.densenet import preprocess_input as mobilenet_preprocessing
-#from tensorflow.keras.applications.mobilenet import preprocess_input as mobilenet_preprocessing
-from tensorflow.keras.applications.efficientnet_v2 import preprocess_input as mobilenet_preprocessing
+from keras import layers, regularizers, optimizers, losses
+from keras.applications.densenet import DenseNet201
+from keras.applications.mobilenet import MobileNet
+from keras.applications.efficientnet_v2 import EfficientNetV2L
+#from keras.applications.densenet import preprocess_input as mobilenet_preprocessing
+#from keras.applications.mobilenet import preprocess_input as mobilenet_preprocessing
+from keras.applications.efficientnet_v2 import preprocess_input as mobilenet_preprocessing
 from keras.callbacks import EarlyStopping, ReduceLROnPlateau
 from sklearn.metrics import classification_report, confusion_matrix
-from tensorflow.keras.utils import set_random_seed
+from keras.utils import set_random_seed, image_dataset_from_directory
 
 def FER_Model(input_shape=(224,224,3)):
     # first input model
@@ -78,7 +75,7 @@ def FER_Model(input_shape=(224,224,3)):
     return model
 
 
-SEED = 30
+SEED = 42
 DATASET_PATH = "../../../dataset/"
 EPOCHS = 150
 BATCH_SIZE = 32
@@ -136,22 +133,17 @@ def create_model(tipo):
         model = keras.Sequential(
             [
                 keras.Input(shape=(INPUT_SHAPE)),
-                layers.Conv2D(32, kernel_size=(3, 3), activation="relu", strides=(1, 1)),
-                #layers.BatchNormalization(),
+                layers.Conv2D(32, kernel_size=(3, 3), activation="relu", strides=(1, 1), kernel_regularizer=regularizers.l2(1e-2)),
                 layers.MaxPooling2D(pool_size=(2, 2)),
-                layers.Conv2D(64, kernel_size=(3, 3), activation="relu", strides=(1, 1)),
-                #layers.BatchNormalization(),
+                layers.Conv2D(64, kernel_size=(3, 3), activation="relu", strides=(1, 1), kernel_regularizer=regularizers.l2(1e-2)),
                 layers.MaxPooling2D(pool_size=(2, 2)),
-                layers.Conv2D(128, kernel_size=(3, 3), activation="relu", strides=(1, 1)),
-                #layers.BatchNormalization(),
+                layers.Conv2D(128, kernel_size=(3, 3), activation="relu", strides=(1, 1), kernel_regularizer=regularizers.l2(1e-2)),
                 layers.MaxPooling2D(pool_size=(2, 2)),
-                layers.Conv2D(256, kernel_size=(3, 3), activation="relu", strides=(1, 1)),
+                layers.Conv2D(256, kernel_size=(3, 3), activation="relu", strides=(1, 1), kernel_regularizer=regularizers.l2(1e-2)),
                 layers.BatchNormalization(),
-                layers.MaxPooling2D(pool_size=(2, 2)),
-                layers.Flatten(),
-                layers.Dense(128, activation='relu'),
-                layers.Dropout(0.3, seed=SEED),
-                layers.Dense(64, activation='relu'),
+                layers.GlobalAveragePooling2D(),
+                layers.Dense(256, activation='relu', kernel_regularizer=regularizers.l2(1e-2)),
+                layers.Dropout(0.35, seed=SEED),
                 layers.Dense(2, activation="softmax")
             ]
         )
@@ -165,11 +157,11 @@ def create_model(tipo):
         inputs = keras.Input(shape=INPUT_SHAPE)
         x = mobilenet_preprocessing(inputs)
         x = base_mobilenet(x, training=False)
-        #x = layers.BatchNormalization()(x)
-        #x = layers.MaxPooling2D(pool_size=(2, 2))(x)
-        x = layers.GlobalAveragePooling2D()(x)
-        x = layers.Dense(128, activation='relu')(x)
-        x = layers.Dropout(0.2, seed=SEED)(x)  # Regularize with dropout
+        x = layers.BatchNormalization(axis=-1)(x)
+        x = layers.MaxPooling2D(pool_size=(2, 2))(x)
+        x = layers.Flatten()(x)
+        x = layers.Dense(256, activation='relu', kernel_regularizer=regularizers.l2(1e-2))(x)
+        x = layers.Dropout(0.35, seed=SEED)(x)  # Regularize with dropout
         outputs = layers.Dense(2, activation="softmax")(x)
         model =  keras.Model(inputs, outputs)
         
@@ -196,19 +188,19 @@ def prepare_dataset(dataset, augment=False):
     if augment: dataset = dataset.map(lambda x, y: (data_augmentation(x, training=True), y), num_parallel_calls=AUTOTUNE)
 
     # Use buffered prefetching on all datasets
-    return dataset.cache().prefetch(buffer_size=AUTOTUNE)
+    return dataset.batch(BATCH_SIZE).cache().prefetch(buffer_size=AUTOTUNE)
 
 
 def train(model, train_dataset, validation_dataset, name):
     print(f"Starting training {name}...")
     # Create some callbacks to avoid overfitting
-    early_stopping = EarlyStopping(monitor="val_loss", patience=17, min_delta=0.0001, restore_best_weights=True, verbose=1)
+    early_stopping = EarlyStopping(monitor="val_loss", patience=12, min_delta=0.0001, restore_best_weights=True, verbose=1)
     lr_scheduler = ReduceLROnPlateau(monitor="val_loss", factor=0.001, patience=5, verbose=1)
     callbacks = [early_stopping, lr_scheduler]
     # Compile the model
     model.compile(
-        optimizer=keras.optimizers.Adam(learning_rate=1e-3),
-        loss=keras.losses.CategoricalCrossentropy(),
+        optimizer=optimizers.Adamax(learning_rate=1e-3),
+        loss=losses.CategoricalCrossentropy(),
         metrics=["accuracy"]
         )
     # Train the model
@@ -255,7 +247,7 @@ def main():
     
     # Load the training dataset
     print("Loading train dataset...")
-    train_ds = tf.keras.utils.image_dataset_from_directory(
+    train_ds = image_dataset_from_directory(
         directory=os.path.join(DATASET_PATH, "train"),
         label_mode="categorical",
         validation_split=None,
@@ -268,7 +260,7 @@ def main():
 
     # Load the validation dataset
     print("Loading validation dataset...")
-    val_ds = tf.keras.utils.image_dataset_from_directory(
+    val_ds = image_dataset_from_directory(
         directory=os.path.join(DATASET_PATH, "valid"),
         label_mode="categorical",
         validation_split=None,
@@ -279,7 +271,7 @@ def main():
     print("Validation dataset loaded!")
     # Load the test dataset
     print("Loading test dataset...")
-    test_ds = tf.keras.utils.image_dataset_from_directory(
+    test_ds = image_dataset_from_directory(
         directory=os.path.join(DATASET_PATH, "test"),
         label_mode="categorical",
         validation_split=None,
