@@ -2,7 +2,7 @@ from bot_server.Updater import Updater
 
 
 # BotFather Token to exploit created Telegram bot
-TOKEN = ""
+TOKEN = "5758831231:AAFqcnYeS79nJ19ZwIoyJWbVv6Cbn6jSbnI"
 
 
 # Define custom function for image management
