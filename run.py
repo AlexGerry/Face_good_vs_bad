@@ -43,7 +43,7 @@ def myImageHandler(bot, message, chat_id, image_name):
     
     faces = find_faces(image_name)
     
-    if len(faces) > 1:
+    if len(faces) >= 1:
         for i, f in enumerate(faces):
             data = Image.fromarray(f)
             path = os.path.join(temp_dir.name, str(i)+".jpeg")
