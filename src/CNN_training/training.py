@@ -11,6 +11,7 @@ from tensorflow.keras.applications.mobilenet_v2 import MobileNetV2
 from tensorflow.keras.applications.mobilenet_v2 import preprocess_input as mobilenet_preprocessing
 from keras.callbacks import EarlyStopping, ReduceLROnPlateau
 from sklearn.metrics import classification_report, confusion_matrix
+from tensorflow.keras.utils import set_random_seed
 
 
 SEED = 42
@@ -19,6 +20,14 @@ EPOCHS = 150
 BATCH_SIZE = 32
 AUTOTUNE = tf.data.AUTOTUNE
 INPUT_SHAPE = (224, 224, 3, )
+
+
+def set_seeds(seed):
+    # `PYTHONHASHSEED` environment variable
+    os.environ['PYTHONHASHSEED'] = str(seed)
+
+    # Python built-in random, numpy(+ scikit) and tensorflow seed
+    set_random_seed(seed)
 
 
 def plot_history(history, x_plot, name="plot.png"):
@@ -62,7 +71,7 @@ def create_model(tipo):
     if tipo == "scratch_model":
         model = keras.Sequential(
             [
-                keras.Input(shape=INPUT_SHAPE),
+                keras.Input(shape=(INPUT_SHAPE)),
                 layers.Conv2D(32, kernel_size=(3, 3), activation="relu", strides=(1, 1)),
                 #layers.BatchNormalization(),
                 layers.MaxPooling2D(pool_size=(2, 2)),
@@ -74,7 +83,8 @@ def create_model(tipo):
                 layers.MaxPooling2D(pool_size=(2, 2)),
                 layers.Conv2D(256, kernel_size=(3, 3), activation="relu", strides=(1, 1)),
                 layers.BatchNormalization(),
-                layers.GlobalAveragePooling2D(),
+                layers.MaxPooling2D(pool_size=(2, 2)),
+                layers.Flatten(),
                 layers.Dense(128, activation='relu'),
                 layers.Dropout(0.3, seed=SEED),
                 layers.Dense(64, activation='relu'),
@@ -87,9 +97,11 @@ def create_model(tipo):
         inputs = keras.Input(shape=INPUT_SHAPE)
         x = mobilenet_preprocessing(inputs)
         x = base_mobilenet(x, training=False)
-        x = layers.GlobalAveragePooling2D()(x)
+        x = layers.BatchNormalization()(x),
+        x = layers.MaxPooling2D(pool_size=(2, 2))(x),
+        x = layers.Flatten()(x),
         x = layers.Dense(128, activation='relu')(x)
-        x = layers.Dropout(0.2, seed=42)(x)  # Regularize with dropout
+        x = layers.Dropout(0.2, seed=SEED)(x)  # Regularize with dropout
         outputs = layers.Dense(2, activation="softmax")(x)
         model =  keras.Model(inputs, outputs)
         
@@ -122,12 +134,12 @@ def prepare_dataset(dataset, augment=False):
 def train(model, train_dataset, validation_dataset, name):
     print(f"Starting training {name}...")
     # Create some callbacks to avoid overfitting
-    early_stopping = EarlyStopping(monitor="val_loss", patience=12, min_delta=0.0001, restore_best_weights=True, verbose=1)
+    early_stopping = EarlyStopping(monitor="val_loss", patience=17, min_delta=0.0001, restore_best_weights=True, verbose=1)
     lr_scheduler = ReduceLROnPlateau(monitor="val_loss", factor=0.001, patience=5, verbose=1)
     callbacks = [early_stopping, lr_scheduler]
     # Compile the model
     model.compile(
-        optimizer=keras.optimizers.Adamax(learning_rate=1e-3),
+        optimizer=keras.optimizers.Adam(learning_rate=1e-3),
         loss=keras.losses.CategoricalCrossentropy(),
         metrics=["accuracy"]
         )
@@ -223,4 +235,5 @@ def main():
 
 
 if __name__ == "__main__":
+    set_seeds(SEED)
     main()
