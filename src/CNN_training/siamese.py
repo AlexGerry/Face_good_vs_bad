@@ -11,10 +11,11 @@ from tensorflow.keras import losses
 from tensorflow.keras import optimizers
 from tensorflow.keras import metrics
 from tensorflow.keras import Model
-from tensorflow.keras.applications import resnet
+from tensorflow.keras.applications import densenet, mobilenet_v2, resnet
 from random import sample
 import skimage
 from tqdm import tqdm
+from keras.callbacks import EarlyStopping, ReduceLROnPlateau
 
 SEED = 42
 DATASET_PATH = "C:/Users/Alessandro/Desktop/università/visual image/dataset/"
@@ -46,7 +47,7 @@ class SiameseModel(Model):
        L(A, P, N) = max(‖f(A) - f(P)‖² - ‖f(A) - f(N)‖² + margin, 0)
     """
 
-    def __init__(self, siamese_network, margin=0.5):
+    def __init__(self, siamese_network, margin=1.5):
         super(SiameseModel, self).__init__()
         self.siamese_network = siamese_network
         self.margin = margin
@@ -106,13 +107,25 @@ def set_seeds(SEED):
     tf.keras.utils.set_random_seed(SEED)
 
 
-def load_data(path):
+def load_data(path, copy_len):
     positive_path= path + "savory/"
     negative_path= path + "unsavory/"
     positive_images = [str(positive_path +"/"+ f) for f in os.listdir(positive_path)]
     negative_images = [str(negative_path +"/"+ f) for f in os.listdir(negative_path)]
-    anchor = positive_images
-    return positive_images, negative_images, anchor
+    random.shuffle(positive_images)
+    dim = len(positive_images)
+    dim1 = dim//2
+    anchor_images = positive_images[dim1:dim]
+    positive_images = positive_images[0:dim1]
+    positive = []
+    anchor = []
+    negative = []
+    for i in tqdm(range(copy_len*2)):
+        positive += positive_images
+        anchor += anchor_images
+    for i in tqdm(range(copy_len)):
+        negative += negative_images
+    return positive, negative, anchor
 
 def preprocess_image(filename):
     """
@@ -143,18 +156,16 @@ def main():
     train_path = DATASET_PATH + "train/"
     valid_path = DATASET_PATH + "valid/"
     
-    positive, negative, anchor = load_data(train_path)
+    positive, negative, anchor = load_data(train_path, 3)
     np.random.shuffle(negative)
     np.random.shuffle(anchor)
-    triples = (anchor,positive,negative)
+    triples = (anchor, positive, negative)
     train = tf.data.Dataset.from_tensor_slices(triples)
-    #train = tf.data.Dataset.zip(train)
     train = train.shuffle(buffer_size=512, seed=SEED)
     train = train.map(preprocess_triplets)
-    train = train.batch(32, drop_remainder=False)
-    train = train.prefetch(8)
+    train = train.batch(32, drop_remainder=False).prefetch(8)
 
-    v_pos, v_neg, v_anch = load_data(valid_path)
+    v_pos, v_neg, v_anch = load_data(valid_path, 1)
     np.random.shuffle(v_neg)
     np.random.shuffle(v_anch)
     triples = (v_anch, v_pos, v_neg)
@@ -162,10 +173,9 @@ def main():
     #valid = tf.data.Dataset.zip(valid)
     valid = valid.shuffle(buffer_size=512, seed=SEED)
     valid = valid.map(preprocess_triplets)
-    valid = valid.batch(32, drop_remainder=False)
-    valid = valid.prefetch(8)
+    valid = valid.batch(32, drop_remainder=False).prefetch(8)
     
-    base_cnn = resnet.ResNet50(weights="imagenet", input_shape=target_shape + (3,), include_top=False)
+    base_cnn = densenet.DenseNet201(weights="imagenet", input_shape=target_shape + (3,), include_top=False)
 
     flatten = layers.Flatten()(base_cnn.output)
     dense1 = layers.Dense(512, activation="relu")(flatten)
@@ -178,7 +188,7 @@ def main():
 
     trainable = False
     for layer in base_cnn.layers:
-        if layer.name == "conv5_block1_out":
+        if layer.name == "conv5_block30_1_relu":
             trainable = True
         layer.trainable = trainable
 
@@ -187,9 +197,9 @@ def main():
     negative_input = layers.Input(name="negative", shape=target_shape + (3,))
 
     distances = DistanceLayer()(
-        embedding(resnet.preprocess_input(anchor_input)),
-        embedding(resnet.preprocess_input(positive_input)),
-        embedding(resnet.preprocess_input(negative_input)),
+        embedding(densenet.preprocess_input(anchor_input)),
+        embedding(densenet.preprocess_input(positive_input)),
+        embedding(densenet.preprocess_input(negative_input)),
     )
 
     siamese_network = Model(inputs=[anchor_input, positive_input, negative_input], outputs=distances)
@@ -198,14 +208,18 @@ def main():
     siamese_model.compile(
         optimizer=optimizers.Adam(0.0001),
             weighted_metrics=[])
-    siamese_model.fit(train, epochs=4, validation_data=valid, batch_size=BATCH_SIZE)
+    
+    early_stopping = EarlyStopping(monitor="val_loss", patience=12, min_delta=0.0001, restore_best_weights=True, verbose=1)
+    lr_scheduler = ReduceLROnPlateau(monitor="val_loss", factor=0.1, patience=5, verbose=1)
+    callbacks = [early_stopping, lr_scheduler]
+    siamese_model.fit(train, epochs=30, validation_data=valid, callbacks=callbacks)
 
     sample = next(iter(train))
     anchor, positive, negative = sample
     anchor_embedding, positive_embedding, negative_embedding = (
-    embedding(resnet.preprocess_input(anchor)),
-    embedding(resnet.preprocess_input(positive)),
-    embedding(resnet.preprocess_input(negative)),
+    embedding(densenet.preprocess_input(anchor)),
+    embedding(densenet.preprocess_input(positive)),
+    embedding(densenet.preprocess_input(negative)),
     )
     cosine_similarity = metrics.CosineSimilarity()
 
@@ -214,6 +228,8 @@ def main():
 
     negative_similarity = cosine_similarity(anchor_embedding, negative_embedding)
     print("Negative similarity", negative_similarity.numpy())
+
+    embedding.save("./siamese_embedding_model")
 
 
 if __name__ == "__main__":

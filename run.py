@@ -3,10 +3,18 @@ from mtcnn.mtcnn import MTCNN
 from PIL import Image
 from matplotlib.pyplot import imread
 import tempfile
+import skimage
+import sklearn
+import numpy as np
 import os
+import pickle
+import tensorflow as tf
 
+target_shape=(200,200)
 detector = MTCNN()
-
+with open("./src/CNN_training/Classifier/svm2.sav", "rb") as handle:
+        classifier = pickle.load(handle)
+embedding = tf.keras.models.load_model("./src/CNN_training/siamese_embedding_model")
 
 # BotFather Token to exploit created Telegram bot
 TOKEN = "5758831231:AAFqcnYeS79nJ19ZwIoyJWbVv6Cbn6jSbnI"
@@ -31,6 +39,14 @@ def find_faces(image_path):
                 res.append(crop)
     return res
 
+def bad_or_good(image_path):
+    img = imread(image_path)
+    img = skimage.transform.resize(img, target_shape)
+    img = np.dstack([img])
+    feature = [embedding(tf.expand_dims(img, axis=0)).numpy()[0]]
+    img_class = classifier.predict(feature)
+    return img_class
+    
 
 # Define custom function for image management
 def myImageHandler(bot, message, chat_id, image_name):
@@ -50,6 +66,13 @@ def myImageHandler(bot, message, chat_id, image_name):
             print(path)
             data.save(path)
             bot.sendImage(chat_id, path, "Ecco una faccia!")
+            result = bad_or_good(path)
+            if result[0] == "savory":
+                bot.sendMessage(chat_id, "La tua faccia è di uno/a buono/a")
+            elif result[0] == "unsavory":
+                bot.sendMessage(chat_id, "La tua faccia è di uno/a cattivo/a")
+            else:
+                bot.sendMessage(chat_id, "No funziona")
     else:
         bot.sendMessage(
             chat_id, "Faccia non trovata, spiaze...!"
