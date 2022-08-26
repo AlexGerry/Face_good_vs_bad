@@ -161,6 +161,7 @@ def main():
     np.random.shuffle(anchor)
     triples = (anchor, positive, negative)
     train = tf.data.Dataset.from_tensor_slices(triples)
+
     train = train.shuffle(buffer_size=512, seed=SEED)
     train = train.map(preprocess_triplets)
     train = train.batch(32, drop_remainder=False).prefetch(8)
@@ -212,7 +213,9 @@ def main():
     early_stopping = EarlyStopping(monitor="val_loss", patience=12, min_delta=0.0001, restore_best_weights=True, verbose=1)
     lr_scheduler = ReduceLROnPlateau(monitor="val_loss", factor=0.1, patience=5, verbose=1)
     callbacks = [early_stopping, lr_scheduler]
+
     siamese_model.fit(train, epochs=30, validation_data=valid, callbacks=callbacks)
+
 
     sample = next(iter(train))
     anchor, positive, negative = sample
