@@ -15,6 +15,7 @@ from tensorflow.keras.applications import resnet
 from random import sample
 import skimage
 from tqdm import tqdm
+from keras.callbacks import EarlyStopping, ReduceLROnPlateau
 
 SEED = 42
 DATASET_PATH = "C:/Users/Alessandro/Desktop/università/visual image/dataset/"
@@ -46,7 +47,7 @@ class SiameseModel(Model):
        L(A, P, N) = max(‖f(A) - f(P)‖² - ‖f(A) - f(N)‖² + margin, 0)
     """
 
-    def __init__(self, siamese_network, margin=0.5):
+    def __init__(self, siamese_network, margin=1.5):
         super(SiameseModel, self).__init__()
         self.siamese_network = siamese_network
         self.margin = margin
@@ -106,13 +107,25 @@ def set_seeds(SEED):
     tf.keras.utils.set_random_seed(SEED)
 
 
-def load_data(path):
+def load_data(path, copy_len):
     positive_path= path + "savory/"
     negative_path= path + "unsavory/"
     positive_images = [str(positive_path +"/"+ f) for f in os.listdir(positive_path)]
     negative_images = [str(negative_path +"/"+ f) for f in os.listdir(negative_path)]
-    anchor = positive_images
-    return positive_images, negative_images, anchor
+    random.shuffle(positive_images)
+    dim = len(positive_images)
+    dim1 = dim//2
+    anchor_images = positive_images[dim1:dim]
+    positive_images = positive_images[0:dim1]
+    positive = []
+    anchor = []
+    negative = []
+    for i in tqdm(range(copy_len*2)):
+        positive += positive_images
+        anchor += anchor_images
+    for i in tqdm(range(copy_len)):
+        negative += negative_images
+    return positive, negative, anchor
 
 def preprocess_image(filename):
     """
@@ -143,18 +156,22 @@ def main():
     train_path = DATASET_PATH + "train/"
     valid_path = DATASET_PATH + "valid/"
     
-    positive, negative, anchor = load_data(train_path)
+    positive, negative, anchor = load_data(train_path, 6)
     np.random.shuffle(negative)
     np.random.shuffle(anchor)
-    triples = (anchor,positive,negative)
+    print(len(positive))
+    print(len(anchor))
+    print(len(negative))
+    triples = (anchor, positive, negative)
     train = tf.data.Dataset.from_tensor_slices(triples)
+    print(train)
     #train = tf.data.Dataset.zip(train)
     train = train.shuffle(buffer_size=512, seed=SEED)
     train = train.map(preprocess_triplets)
     train = train.batch(32, drop_remainder=False)
     train = train.prefetch(8)
 
-    v_pos, v_neg, v_anch = load_data(valid_path)
+    v_pos, v_neg, v_anch = load_data(valid_path, 1)
     np.random.shuffle(v_neg)
     np.random.shuffle(v_anch)
     triples = (v_anch, v_pos, v_neg)
@@ -198,7 +215,11 @@ def main():
     siamese_model.compile(
         optimizer=optimizers.Adam(0.0001),
             weighted_metrics=[])
-    siamese_model.fit(train, epochs=4, validation_data=valid, batch_size=BATCH_SIZE)
+    
+    early_stopping = EarlyStopping(monitor="val_loss", patience=12, min_delta=0.0001, restore_best_weights=True, verbose=1)
+    lr_scheduler = ReduceLROnPlateau(monitor="val_loss", factor=0.1, patience=5, verbose=1)
+    callbacks = [early_stopping, lr_scheduler]
+    siamese_model.fit(train, epochs=20, validation_data=valid)
 
     sample = next(iter(train))
     anchor, positive, negative = sample
