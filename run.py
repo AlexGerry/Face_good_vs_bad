@@ -2,7 +2,7 @@ from bot_server.Updater import Updater
 from PIL import Image
 import tempfile
 import os
-from .src.DeepModel import DeepModel
+from src.DeepModel import DeepModel
 
 
 model = DeepModel("./src/CNN_training/Classifier/svm2.sav", "./src/CNN_training/siamese_embedding_model", (200,200))
