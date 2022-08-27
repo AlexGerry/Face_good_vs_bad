@@ -3,6 +3,7 @@ from PIL import Image
 import tempfile
 import os
 from src.DeepModel import DeepModel
+import matplotlib.pyplot as plt
 
 
 classifier_path = "./src/CNN_training/Classifier/svm_final_nu03.sav"
@@ -20,6 +21,21 @@ model = DeepModel(
 
 # BotFather Token to exploit created Telegram bot
 TOKEN = "5758831231:AAFqcnYeS79nJ19ZwIoyJWbVv6Cbn6jSbnI"
+
+def imageSubplot(similar):
+    count = 0
+    x = len(similar)
+    fig, axs = plt.subplots(2, 3)
+    for i in range(0,2):
+        for j in range(0,3):
+            img = Image.open(similar[count])
+            axs[i,j].axes.xaxis.set_visible(False)
+            axs[i,j].axes.yaxis.set_visible(False)
+            axs[i,j].title.set_text(str(count))
+            axs[i,j].imshow(img)
+            count +=1
+    fig.savefig("temp.png")
+
     
 
 # Define custom function for image management
@@ -53,9 +69,10 @@ def myImageHandler(bot, message, chat_id, name, image_name):
                 chat_id, f"Ora, {name}, Ti farò vedere a chi assomigli di più!"
             )
             most_similar = model.cbir(image)
-            bot.sendMessage(
-                chat_id, f"Most similar: {str(most_similar)}"
-            )
+            imageSubplot(most_similar)
+            bot.sendImage(
+                    chat_id, "./temp.png", "Faccie"
+                    )
     else:
         bot.sendMessage(
             chat_id, "Faccia non trovata, spiaze...!"
