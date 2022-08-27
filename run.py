@@ -5,7 +5,7 @@ import os
 from src.DeepModel import DeepModel
 
 
-model = DeepModel("./src/CNN_training/Classifier/svm2.sav", "./src/CNN_training/siamese_embedding_model", (200,200))
+model = DeepModel("./src/CNN_training/Classifier/svm_final_nu03.sav", "./src/CNN_training/final_siamese_embedding_model", (200,200))
 
 # BotFather Token to exploit created Telegram bot
 TOKEN = "5758831231:AAFqcnYeS79nJ19ZwIoyJWbVv6Cbn6jSbnI"
