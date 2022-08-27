@@ -120,7 +120,7 @@ class DeepModel(object):
         return [self.siamese_embeddings(tf.expand_dims(image, axis=0)).numpy()[0]]
     
     
-    def cbir(self, image, k:int=6) -> list:
+    def cbir(self, image, k:int=10) -> list:
         """ This function outputs the most k similar image to the one given in input.
         
             Parameters:
@@ -142,7 +142,7 @@ class DeepModel(object):
         similar = self.kdtree.query(feature, k=k, return_distance=False)
         print(f"{k} most similar found in: {perf_counter() - start}")
         
-        return [self.image_train_paths[i] for i in similar[0]]
+        return [os.path.join("..", *self.image_train_paths[i].parts[-4:]) for i in similar[0]]
     
     
     @staticmethod
