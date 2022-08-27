@@ -1,51 +1,14 @@
 from bot_server.Updater import Updater
-from mtcnn.mtcnn import MTCNN
 from PIL import Image
-from matplotlib.pyplot import imread
 import tempfile
-import skimage
-import sklearn
-import numpy as np
 import os
-import pickle
-import tensorflow as tf
+from .src.DeepModel import DeepModel
 
-target_shape=(200,200)
-detector = MTCNN()
-with open("./src/CNN_training/Classifier/svm2.sav", "rb") as handle:
-        classifier = pickle.load(handle)
-embedding = tf.keras.models.load_model("./src/CNN_training/siamese_embedding_model")
+
+model = DeepModel("./src/CNN_training/Classifier/svm2.sav", "./src/CNN_training/siamese_embedding_model", (200,200))
 
 # BotFather Token to exploit created Telegram bot
 TOKEN = "5758831231:AAFqcnYeS79nJ19ZwIoyJWbVv6Cbn6jSbnI"
-
-
-def find_faces(image_path):
-    res = []
-    img = imread(image_path)
-    result_list = detector.detect_faces(img)
-    if len(result_list) == 1:
-        [X, Y, W, H] = result_list[0]['box']
-        crop = img[Y:Y+H, X:X+W]
-        faces_found = detector.detect_faces(crop)
-        if len(faces_found) == 1:
-            res.append(crop)
-    elif len(result_list) > 1:
-        for result in result_list:
-            [X, Y, W, H] = result['box']
-            crop = img[Y:Y+H, X:X+W]
-            faces_found = detector.detect_faces(crop)
-            if len(faces_found) == 1:
-                res.append(crop)
-    return res
-
-def bad_or_good(image_path):
-    img = imread(image_path)
-    img = skimage.transform.resize(img, target_shape)
-    img = np.dstack([img])
-    feature = [embedding(tf.expand_dims(img, axis=0)).numpy()[0]]
-    img_class = classifier.predict(feature)
-    return img_class
     
 
 # Define custom function for image management
@@ -57,7 +20,7 @@ def myImageHandler(bot, message, chat_id, image_name):
         chat_id, f"Ciao utente {chat_id}!"
     )
     
-    faces = find_faces(image_name)
+    faces = DeepModel.find_faces(image_name)
     
     if len(faces) >= 1:
         for i, f in enumerate(faces):
@@ -66,7 +29,8 @@ def myImageHandler(bot, message, chat_id, image_name):
             print(path)
             data.save(path)
             bot.sendImage(chat_id, path, "Ecco una faccia!")
-            result = bad_or_good(path)
+            
+            result = model.predict(path)
             if result[0] == "savory":
                 bot.sendMessage(chat_id, "La tua faccia è di uno/a buono/a")
             elif result[0] == "unsavory":
