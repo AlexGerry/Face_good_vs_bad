@@ -5,6 +5,7 @@ import random
 import tensorflow as tf
 import itertools
 from pathlib import Path
+from tensorflow.keras import regularizers
 from tensorflow.keras import applications
 from tensorflow.keras import layers
 from tensorflow.keras import losses
@@ -47,7 +48,7 @@ class SiameseModel(Model):
        L(A, P, N) = max(‖f(A) - f(P)‖² - ‖f(A) - f(N)‖² + margin, 0)
     """
 
-    def __init__(self, siamese_network, margin=1.5):
+    def __init__(self, siamese_network, margin=2):
         super(SiameseModel, self).__init__()
         self.siamese_network = siamese_network
         self.margin = margin
