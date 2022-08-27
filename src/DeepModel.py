@@ -8,6 +8,11 @@ from keras import models
 from PIL import Image
 from mtcnn.mtcnn import MTCNN
 from matplotlib.pyplot import imread
+import pathlib
+import zipfile
+import requests
+import shutil
+from tqdm import tqdm
 
 
 class DeepModel(object):
@@ -15,11 +20,45 @@ class DeepModel(object):
     
     def __init__(self, classifier_path:str, siamese_embeddings_path:str, image_size:Tuple=(200,200)) -> None:
         self.classifier = None
-        self.siamese_embeddings = models.load_model(siamese_embeddings_path)
+        self.siamese_embeddings = self.__load_model(siamese_embeddings_path)
         self.target_shape = image_size
         with open(classifier_path, "rb") as f:
             self.classifier = pickle.load(f)
-    
+
+    def __load_model(self, model_path):
+        path = pathlib.Path(model_path)
+
+        if not path.exists():
+            print("Downloading zipped model from Google Drive...")
+            file_id = '1VfWwIVs47xKPdV5VF31iFvp0iso9ZURc'
+            gdrive_link = f"https://drive.google.com/uc?export=download&confirm=9_s_&id={file_id}"
+            download_file_path = pathlib.Path('./src/CNN_training/siamese.zip')
+
+            # make an HTTP request within a context manager
+            with requests.get(gdrive_link, stream=True) as r:
+                
+                # check header to get content length, in bytes
+                total_length = int(r.headers.get("Content-Length"))
+                
+                # implement progress bar via tqdm
+                with tqdm.wrapattr(r.raw, "read", total=total_length, desc="") as raw:
+                
+                    # save the output to a file
+                    with open(download_file_path, 'wb') as output:
+                        shutil.copyfileobj(raw, output)
+
+            with zipfile.ZipFile(download_file_path, 'r') as fZip:
+                fZip.extractall('./src/CNN_training/')
+
+            # Delete zip file
+            download_file_path.unlink()
+        
+        model = tf.keras.models.load_model(path)
+
+        print(f"Model loaded from {str(path)}")
+
+        return model
+
     
     def predict(self, image_path:str):
         """ This function predicts the label of the given image.
