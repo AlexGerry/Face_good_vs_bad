@@ -21,21 +21,16 @@ train_image_path = './src/BOVW/bovw/train_paths.pkl'
 # BotFather Token to exploit created Telegram bot
 TOKEN = "5758831231:AAFqcnYeS79nJ19ZwIoyJWbVv6Cbn6jSbnI"
 
-def imageSubplot(similar, dir):
-    count = 0
-    x = len(similar)
-    fig, axs = plt.subplots(2, 3)
-    for i in range(0,2):
-        for j in range(0,3):
-            img = Image.open(similar[count])
-            axs[i,j].axes.xaxis.set_visible(False)
-            axs[i,j].axes.yaxis.set_visible(False)
-            axs[i,j].title.set_text(str(count))
-            axs[i,j].imshow(img)
-            count +=1
-    fig.savefig(os.path.join(dir, "temp.png"))
 
-    
+def imageSubplot(similar, dir):
+    fig, axes = plt.subplots(nrows=len(similar), ncols=1, figsize=(20, 20))
+    for i, path in enumerate(similar):
+        plt.subplot(len(similar), 1, i+1)
+        plt.title(f"{i+1}")
+        plt.axis('off')
+        plt.imshow(plt.imread(path))
+    plt.savefig(os.path.join(dir, "temp.png"), bbox_inches='tight')
+
 
 # Define custom function for image management
 #def myImageHandler_Siamese(bot, message, chat_id, name, image_name):
@@ -96,8 +91,7 @@ def myImageHandler_BOVW(bot, message, chat_id, name, image_name):
             image.save(path)
             bot.sendImage(chat_id, path, "Ecco! Una faccia!")
             # Predict good or bad image
-            pred, most_similar = BOVW.cbir(bovw_path, path, train_voc_path, train_image_path, 6)
-            print("pred:", pred)
+            pred, most_similar = BOVW.cbir(bovw_path, path, train_voc_path, train_image_path)
             if pred == "savory":
                 bot.sendMessage(chat_id, "La tua faccia è di uno/a buono/a")
             elif pred == "unsavory":
