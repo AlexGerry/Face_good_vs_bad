@@ -13,17 +13,37 @@ import zipfile
 import requests
 import shutil
 from tqdm import tqdm
+from time import perf_counter
+from sklearn.neighbors import KDTree
 
 
 class DeepModel(object):
     detector = MTCNN()
     
-    def __init__(self, classifier_path:str, siamese_embeddings_path:str, image_size:Tuple=(200,200)) -> None:
+    def __init__(
+        self, classifier_path:str, 
+        siamese_embeddings_path:str, 
+        image_train_paths:str=None,
+        image_train_features:str=None,
+        image_size:Tuple=(200,200)
+        ) -> None:
+        
         self.classifier = None
-        self.siamese_embeddings = self.__load_model(siamese_embeddings_path)
+        self.image_train_paths = None
+        self.image_train_features = None
         self.target_shape = image_size
+        self.siamese_embeddings = self.__load_model(siamese_embeddings_path)
         with open(classifier_path, "rb") as f:
             self.classifier = pickle.load(f)
+        with open(image_train_paths, "rb") as f:
+            self.image_train_paths = pickle.load(f)
+        with open(image_train_features, "rb") as f:
+            self.image_train_features = pickle.load(f)
+        
+        start = perf_counter()
+        self.kdtree = KDTree(self.image_train_features)
+        print(f"KDTree computed in: {perf_counter() - start}")
+
 
     def __load_model(self, model_path):
         path = pathlib.Path(model_path)
@@ -94,27 +114,35 @@ class DeepModel(object):
                 The feature vector of the image
         
             """
+        if image.size != self.target_shape:
+            image = image.resize(self.target_shape)
         image = np.dstack([image])
         return [self.siamese_embeddings(tf.expand_dims(image, axis=0)).numpy()[0]]
     
     
-    def cbir(self, image_path:str=None, k:int=10):
+    def cbir(self, image, k:int=10) -> list:
         """ This function outputs the most k similar image to the one given in input.
         
             Parameters:
             ----------
-            image_path: str
-                The path of the input image
+            image: Any
+                The input image
             k: int
                 The number of images to retrieve
                 
             Returns:
             -------
-            bho: None
-                The k most similar images
+            most_similar: list
+                The k most similar images path
         
             """
-        pass
+        feature = self.extract_features(image)
+        
+        start = perf_counter()
+        similar = self.kdtree.query(feature, k=k, return_distance=False)
+        print(f"{k} most similar found in: {perf_counter() - start}")
+        
+        return [self.image_train_paths[i] for i in similar[0]]
     
     
     @staticmethod

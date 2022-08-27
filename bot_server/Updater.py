@@ -44,7 +44,7 @@ class Updater:
                     self.textHandler(self.bot, message, chat_id, text)
                 if messageType == 'photo':
                     local_filename = self.bot.getFile(u['message']['photo'][-1]['file_id'])
-                    self.photoHandler(self.bot, message, chat_id, local_filename)
+                    self.photoHandler(self.bot, message, chat_id, name, local_filename)
                 if messageType == 'voice':
                     local_filename = self.bot.getFile(u['message']['voice']['file_id'])
                     self.voiceHandler(self.bot, message, chat_id, local_filename)
