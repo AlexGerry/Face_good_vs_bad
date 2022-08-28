@@ -6,9 +6,10 @@ from tqdm import tqdm
 from pathlib import Path
 from scipy.cluster.vq import vq
 from time import perf_counter
-import dill, pickle
+import dill
 from sklearn.neighbors import KDTree
 import os
+import sys
 from matplotlib import pyplot as plt
 
 
@@ -129,6 +130,7 @@ class BOVW(object):
 
     @staticmethod
     def load_model(path):
+        sys.path.insert(0, "./src")
         with open(path, 'rb') as f: model = dill.load(f)    
         return model
     

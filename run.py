@@ -3,7 +3,7 @@ from PIL import Image
 import tempfile
 import os
 from src.DeepModel import DeepModel
-from BOVW import BOVW
+from src.BOVW import BOVW
 import matplotlib.pyplot as plt
 
 
