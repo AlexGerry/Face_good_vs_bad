@@ -4,6 +4,7 @@ import json, os, sys
 import urllib
 import tempfile
 import requests
+import matplotlib.pyplot as plt
 from .Bot import Bot
 
 
@@ -14,7 +15,7 @@ class Updater:
     def __init__(self, bot_id, waitingTime=0, download_folder=tempfile.gettempdir()+os.sep):
         self.bot = Bot(bot_id, download_folder)
         self.textHandler     = doNothing;
-        self.photoHandler    = doNothing;
+        self.photoHandler    = None
         self.voiceHandler    = doNothing;
         self.documentHandler = doNothing;
         self.waitingTime     = waitingTime;
@@ -41,10 +42,15 @@ class Updater:
                 if messageType == 'text':
                     # TODO: distinguish between command and plain text
                     text = message['text']
-                    self.textHandler(self.bot, message, chat_id, text)
+                    self.textHandler(self.bot, message, chat_id, name, text)
                 if messageType == 'photo':
-                    local_filename = self.bot.getFile(u['message']['photo'][-1]['file_id'])
-                    self.photoHandler(self.bot, message, chat_id, name, local_filename)
+                    if self.photoHandler is None:
+                        self.bot.sendMessage(
+                            chat_id, f"Scusa {name}, prima dovresti scegliere un metodo fra quelli a disposizione.\nEcco una lista di comandi:\n\t/BOVW\n\t/Siamese"
+                        )
+                    else:
+                        local_filename = self.bot.getFile(u['message']['photo'][-1]['file_id'])
+                        self.photoHandler(self.bot, message, chat_id, name, local_filename)
                 if messageType == 'voice':
                     local_filename = self.bot.getFile(u['message']['voice']['file_id'])
                     self.voiceHandler(self.bot, message, chat_id, local_filename)
@@ -53,6 +59,17 @@ class Updater:
                     self.documentHandler(self.bot, message, chat_id, local_filename)
             if self.waitingTime > 0:
                 time.sleep(self.waitingTime)
+                
+                
+    @staticmethod
+    def imageSubplot(similar, dir):
+        fig, axes = plt.subplots(nrows=len(similar), ncols=1, figsize=(20, 20))
+        for i, path in enumerate(similar):
+            plt.subplot(len(similar), 1, i+1)
+            plt.title(f"{i+1}")
+            plt.axis('off')
+            plt.imshow(plt.imread(path))
+        plt.savefig(os.path.join(dir, "temp.png"), bbox_inches='tight')
 
 #if __name__ == "__main__":
 #    updater = Updater('128366843:AAHovviK9AQDbcWJkM9JkqDAt8B5oLUUCQI')
