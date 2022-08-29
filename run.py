@@ -4,6 +4,8 @@ import tempfile
 import os
 from src.DeepModel import DeepModel
 from src.BOVW import BOVW
+from src.ColorHistogram import ColorHistogram
+from src.CombinedModel import CombinedModel
 
 
 # Siamese model paths
@@ -16,6 +18,13 @@ image_train_paths = "./src/CNN_training/Features/path_final.pkl"
 bovw_path = './src/BOVW/bovw/bovw.pkl'
 train_voc_path = './src/BOVW/bovw/train_bovw.pkl'
 train_image_path = './src/BOVW/bovw/train_paths.pkl'
+
+# Color paths
+color_path = "./src/Color/color/histogram_model.pkl"
+train_color_path = "./src/Color/color/train_color_histogram.pkl"
+
+# Combined paths
+combined_path = "./src/Combined_descriptors/combined/combined_model.pkl"
 
 # BotFather Token to exploit created Telegram bot
 TOKEN = "5758831231:AAFqcnYeS79nJ19ZwIoyJWbVv6Cbn6jSbnI"
@@ -45,6 +54,10 @@ def image_handler(tipo:str):
                     most_similar = model.cbir(image)
                 elif tipo == "/BOVW":
                     result, most_similar = BOVW.cbir(bovw_path, path, train_voc_path, train_image_path)
+                elif tipo == "/Color":
+                    result, most_similar = ColorHistogram.cbir(color_path, path, train_color_path, train_image_path)
+                elif tipo == "/BOVWColor":
+                    result, most_similar = CombinedModel.cbir(combined_path, path, None, None)
                     
                 if result[0] == "savory":
                     bot.sendMessage(chat_id, "Complimenti! La tua faccia è buona! \N{smiling face with halo}")
@@ -69,14 +82,14 @@ def image_handler(tipo:str):
 
 def text_handler(theBot):
     def myTextHandler(bot, message, chat_id, name, text): 
-        if text == "/BOVW" or text == "/Siamese":
+        if text == "/BOVW" or text == "/Siamese" or text == "/Color" or text == "/BOVWColor":
             bot.sendMessage(
                 chat_id, f"Eccomi {name}, quando sei pronto/a inviami una foto!"
             )
             theBot.setPhotoHandler(image_handler(tipo=text))
         else:
             bot.sendMessage(
-                chat_id, f"Scusa {name}, ma non ho capito...\nEcco una lista di comandi:\n\t/BOVW\n\t/Siamese"
+                chat_id, f"Scusa {name}, ma non ho capito...\nEcco una lista di comandi:\n\t/BOVW\n\t/Siamese\n\t/Color\n\t/BOVWColor"
             )
     return myTextHandler
 

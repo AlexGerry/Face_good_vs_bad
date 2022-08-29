@@ -46,7 +46,7 @@ class Updater:
                 if messageType == 'photo':
                     if self.photoHandler is None:
                         self.bot.sendMessage(
-                            chat_id, f"Scusa {name}, prima dovresti scegliere un metodo fra quelli a disposizione.\nEcco una lista di comandi:\n\t/BOVW\n\t/Siamese"
+                            chat_id, f"Scusa {name}, prima dovresti scegliere un metodo fra quelli a disposizione.\nEcco una lista di comandi:\n\t/BOVW\n\t/Siamese\n\t/Color\n\t/BOVWColor"
                         )
                     else:
                         local_filename = self.bot.getFile(u['message']['photo'][-1]['file_id'])
