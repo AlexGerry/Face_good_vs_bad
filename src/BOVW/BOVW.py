@@ -15,6 +15,7 @@ from matplotlib import pyplot as plt
 
 
 class BOVW(object):
+    __name__ = "BOVW"
     
     def __init__(self, num_cluster:int=100, step_size:int=15, img_dim:int=300) -> None:
         self.num_clusters = num_cluster
@@ -112,6 +113,12 @@ class BOVW(object):
         bovw_hist = self.compute_histogram(sifts, [1])
         # Predict
         return self.model.predict(bovw_hist), bovw_hist
+    
+    
+    def extract_descriptor(self, data_path:str, image_format:str='jpeg'):
+        descr, labels, path = self.extract_Sifts(data_path, image_format)
+        histogram_test = self.compute_histogram(descr, labels)
+        return histogram_test, labels, path
     
     
     @staticmethod

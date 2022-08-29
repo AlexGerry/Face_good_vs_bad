@@ -1,7 +1,4 @@
-import numpy as np
-from matplotlib import pyplot as plt
 from pathlib import Path
-from sklearn.metrics import ConfusionMatrixDisplay
 import dill
 import cv2
 from tqdm import tqdm
@@ -13,6 +10,7 @@ from sklearn.ensemble import RandomForestClassifier
 
 
 class ColorHistogram(object):
+    __name__ = "ColorHistogram"
     
     def __init__(self, num_bins:int=8) -> None:
         self.num_bins = (num_bins, num_bins, num_bins)
@@ -78,7 +76,7 @@ class ColorHistogram(object):
         # Compute histogram
         hist = self.compute_histogram(im)
         # Predict
-        return self.model.predict([hist]), [hist]
+        return self.forest.predict([hist]), [hist]
     
     
     @staticmethod
