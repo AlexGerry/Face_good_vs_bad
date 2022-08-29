@@ -7,8 +7,10 @@ from pathlib import Path
 from scipy.cluster.vq import vq
 from time import perf_counter
 import dill
-from sklearn.neighbors import KDTree
+from sklearn.neighbors import KDTree, KNeighborsClassifier
+from sklearn.ensemble import RandomForestClassifier
 import os
+import sys
 from matplotlib import pyplot as plt
 
 
@@ -18,6 +20,8 @@ class BOVW(object):
         self.num_clusters = num_cluster
         self.kmeans = KMeans(n_clusters = self.num_clusters, random_state = 42)
         self.model = SVC(random_state=42)
+        self.knn = KNeighborsClassifier()
+        self.forest = RandomForestClassifier(random_state=42)
         self.step_size = step_size
         self.img_dim = img_dim
         
@@ -70,9 +74,18 @@ class BOVW(object):
         
         descr, labels, train_paths = self.extract_Sifts(image_folder_path, image_format)
         train_bovw = self.create_bovw(descr, labels)
+        
         start = perf_counter()
         self.model.fit(train_bovw, labels)
         print(f"SVC fitted in: {perf_counter() - start}")
+        
+        start = perf_counter()
+        self.knn.fit(train_bovw, labels)
+        print(f"KNN fitted in: {perf_counter() - start}")
+        
+        start = perf_counter()
+        self.forest.fit(train_bovw, labels)
+        print(f"Random Forest fitted in: {perf_counter() - start}")
         
         try:
             with open(f'{save_path}/train_bovw.pkl', 'wb') as f: dill.dump(train_bovw, f)
@@ -120,7 +133,7 @@ class BOVW(object):
         similar = tree.query(feature, k=k, return_distance=False)
         print(f"{k} most similar found in: {perf_counter() - start}")
         
-        return prediction, [train_paths[i] for i in similar[0]]
+        return prediction, [os.path.join(*train_paths[i].split('\\')[-5:]) for i in similar[0]]
     
     
     def save_model(self, path):
@@ -129,6 +142,7 @@ class BOVW(object):
 
     @staticmethod
     def load_model(path):
+        sys.path.insert(0, "./src")
         with open(path, 'rb') as f: model = dill.load(f)    
         return model
     
