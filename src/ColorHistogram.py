@@ -80,25 +80,32 @@ class ColorHistogram(object):
     
     
     @staticmethod
-    def cbir(model_path, image_path, features_train_path:str=None, image_train_path:str=None, k:int=10):
-        if features_train_path is None or model_path is None or image_train_path is None: raise ValueError("Not a valid path!")
+    def cbir(model_path, image_path, savory_path:str=None, unsavory_path:str=None, image_train_path:str=None, k:int=5   ):
+        if savory_path is None or unsavory_path is None or model_path is None or image_train_path is None: raise ValueError("Not a valid path!")
         # Load train bovw
-        with open(features_train_path, 'rb') as f: train_features = dill.load(f)
+        with open(savory_path, 'rb') as f: savory = dill.load(f)
+        with open(unsavory_path, 'rb') as f: unsavory = dill.load(f)
         # Load train paths
         with open(image_train_path, 'rb') as f: train_paths = dill.load(f)
         # Load model
         color_model = ColorHistogram.load_model(model_path)
+        # Divide train path
+        dim1 = int(len(train_paths)/2)
+        path_savory = train_paths[0:dim1]
+        path_unsavory = train_paths[dim1:len(train_paths)]
         
         prediction, feature = color_model.predict_image(image_path)
         start = perf_counter()
-        tree = KDTree(train_features)
+        tree_s = KDTree(savory)
+        tree_u = KDTree(unsavory)
         print(f"KDTree computed in: {perf_counter() - start}")
         
         start = perf_counter()
-        similar = tree.query(feature, k=k, return_distance=False)
+        similar_s = tree_s.query(feature, k=k, return_distance=False)
+        similar_u = tree_u.query(feature, k=k, return_distance=False)
         print(f"{k} most similar found in: {perf_counter() - start}")
         
-        return prediction, [os.path.join(*train_paths[i].split('\\')[-5:]) for i in similar[0]]
+        return prediction, [os.path.join(*path_savory[i].split('\\')[-5:]) for i in similar_s[0]], [os.path.join(*path_unsavory[i].split('\\')[-5:]) for i in similar_u[0]]
     
     
     def save_model(self, path):

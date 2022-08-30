@@ -23,7 +23,8 @@ train_image_path = './src/BOVW/bovw/train_paths.pkl'
 
 # Color paths
 color_path = "./src/Color/color/histogram_model.pkl"
-train_color_path = "./src/Color/color/train_color_histogram.pkl"
+color_savory = "./src/Color/color/feature_savory.pkl"
+color_unsavory = "./src/Color/color/feature_unsavory.pkl"
 
 # Combined paths
 combined_path = "./src/Combined_descriptors/combined/combined_model.pkl"
@@ -57,7 +58,7 @@ def image_handler(tipo:str):
                 elif tipo == "/BOVW":
                     result, most_similar_s, most_similar_u = BOVW.cbir(bovw_path, path, bovw_savory, bovw_unsavory, train_image_path)
                 elif tipo == "/Color":
-                    result, most_similar = ColorHistogram.cbir(color_path, path, train_color_path, train_image_path)
+                    result, most_similar_s, most_similar_u = ColorHistogram.cbir(color_path, path, color_savory, color_unsavory, train_image_path)
                 elif tipo == "/BOVWColor":
                     result, most_similar = CombinedModel.cbir(combined_path, path, None, None)
                     
