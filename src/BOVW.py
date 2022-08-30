@@ -114,9 +114,9 @@ class BOVW(object):
         bovw = BOVW.load_model(bovw_path)
         
         # Divide paths
-        dim1 = int(len(train_paths)/2)
-        path_savory = train_paths[0:dim1]
-        path_unsavory = train_paths[dim1:len(train_paths)]
+        train_paths = np.asarray(train_paths)
+        path_unsavory = [x for x in train_paths if 'unsavory' in x]
+        path_savory = np.setdiff1d(train_paths, path_unsavory)
         
         prediction, feature = bovw.predict_image(image_path)
         start = perf_counter()
@@ -174,9 +174,9 @@ class BOVW(object):
         bovw = BOVW.load_model(bovw_path)
         
         # Divide paths
-        dim1 = int(len(train_paths)/2)
-        path_savory = train_paths[0:dim1]
-        path_unsavory = train_paths[dim1:len(train_paths)]
+        train_paths = np.asarray(train_paths)
+        path_unsavory = [x for x in train_paths if 'unsavory' in x]
+        path_savory = np.setdiff1d(train_paths, path_unsavory)
         
         _, sel_img_emb = bovw.predict_image(os.path.abspath(selected_image_path))
         mean_emb = np.mean([query_image_feature, sel_img_emb], axis=0)

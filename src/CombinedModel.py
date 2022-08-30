@@ -95,9 +95,9 @@ class CombinedModel(object):
         with open("./src/Combined_descriptors/combined/feature_unsavory.pkl", 'rb') as f: unsavory = dill.load(f)
         
         # Divide train path
-        dim1 = int(len(comb_model.images_path)/2)
-        path_savory = comb_model.images_path[0:dim1]
-        path_unsavory = comb_model.images_path[dim1:len(comb_model.images_path)]
+        train_paths = np.asarray(train_paths)
+        path_unsavory = [x for x in train_paths if 'unsavory' in x]
+        path_savory = np.setdiff1d(train_paths, path_unsavory)
         
         prediction, feature = comb_model.predict_image(image_path)
 
@@ -126,9 +126,9 @@ class CombinedModel(object):
         with open("./src/Combined_descriptors/combined/feature_unsavory.pkl", 'rb') as f: unsavory = dill.load(f)
         
         # Divide train path
-        dim1 = int(len(comb_model.images_path)/2)
-        path_savory = comb_model.images_path[0:dim1]
-        path_unsavory = comb_model.images_path[dim1:len(comb_model.images_path)]
+        train_paths = np.asarray(train_paths)
+        path_unsavory = [x for x in train_paths if 'unsavory' in x]
+        path_savory = np.setdiff1d(train_paths, path_unsavory)
         
         _, sel_img_emb = comb_model.predict_image(os.path.abspath(selected_image_path))
         mean_emb = np.mean([query_image_feature, sel_img_emb], axis=0)
