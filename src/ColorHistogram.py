@@ -7,6 +7,7 @@ import os, sys
 from sklearn.svm import SVC
 from sklearn.neighbors import KDTree, KNeighborsClassifier
 from sklearn.ensemble import RandomForestClassifier
+import numpy as np
 
 
 class ColorHistogram(object):
@@ -89,6 +90,7 @@ class ColorHistogram(object):
         with open(image_train_path, 'rb') as f: train_paths = dill.load(f)
         # Load model
         color_model = ColorHistogram.load_model(model_path)
+        
         # Divide train path
         dim1 = int(len(train_paths)/2)
         path_savory = train_paths[0:dim1]
@@ -105,7 +107,7 @@ class ColorHistogram(object):
         similar_u = tree_u.query(feature, k=k, return_distance=False)
         print(f"{k} most similar found in: {perf_counter() - start}")
         
-        return prediction, [os.path.join(*path_savory[i].split('\\')[-5:]) for i in similar_s[0]], [os.path.join(*path_unsavory[i].split('\\')[-5:]) for i in similar_u[0]]
+        return prediction, [os.path.join(*path_savory[i].split('\\')[-5:]) for i in similar_s[0]], [os.path.join(*path_unsavory[i].split('\\')[-5:]) for i in similar_u[0]], feature
     
     
     def save_model(self, path):
@@ -117,3 +119,31 @@ class ColorHistogram(object):
         sys.path.insert(0, "./src")
         with open(path, 'rb') as f: model = dill.load(f)    
         return model
+    
+    
+    @staticmethod
+    def refine_search(query_image_feature, selected_image_path:str, model_path:str, savory_path:str=None, unsavory_path:str=None, image_train_path:str=None, k:int=5):
+        if savory_path is None or unsavory_path is None or model_path is None or image_train_path is None: raise ValueError("Not a valid path!")
+        # Load train bovw
+        with open(savory_path, 'rb') as f: savory = dill.load(f)
+        with open(unsavory_path, 'rb') as f: unsavory = dill.load(f)
+        # Load train paths
+        with open(image_train_path, 'rb') as f: train_paths = dill.load(f)
+        # Load model
+        color_model = ColorHistogram.load_model(model_path)
+        
+        # Divide train path
+        dim1 = int(len(train_paths)/2)
+        path_savory = train_paths[0:dim1]
+        path_unsavory = train_paths[dim1:len(train_paths)]
+        
+        _, sel_img_emb = color_model.predict_image(os.path.abspath(selected_image_path))
+        mean_emb = np.mean([query_image_feature, sel_img_emb], axis=0)
+        
+        tree_s = KDTree(savory)
+        tree_u = KDTree(unsavory)
+        
+        similar_s = tree_s.query(mean_emb, k=k, return_distance=False)
+        similar_u = tree_u.query(mean_emb, k=k, return_distance=False)
+        
+        return mean_emb, [os.path.join(*path_savory[i].split('\\')[-5:]) for i in similar_s[0]], [os.path.join(*path_unsavory[i].split('\\')[-5:]) for i in similar_u[0]]

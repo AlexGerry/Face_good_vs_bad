@@ -16,6 +16,7 @@ class Updater:
         self.bot = Bot(bot_id, download_folder)
         self.textHandler     = doNothing;
         self.photoHandler    = None
+        self.RefineHandler   = doNothing;
         self.voiceHandler    = doNothing;
         self.documentHandler = doNothing;
         self.waitingTime     = waitingTime;
@@ -25,6 +26,9 @@ class Updater:
 
     def setPhotoHandler(self, f):
         self.photoHandler = f
+        
+    def setRefineHandler(self, f):
+        self.RefineHandler = f
 
     def setVoiceHandler(self, f):
         self.voiceHandler = f
@@ -40,9 +44,19 @@ class Updater:
                 message_id  = message['message_id']
                 # call right functors
                 if messageType == 'text':
-                    # TODO: distinguish between command and plain text
                     text = message['text']
-                    self.textHandler(self.bot, message, chat_id, name, text)
+                    print("updater text:", text)
+                    if text in ['/'+str(i) for i in range(1, 11)]:
+                        print("settp refine")
+                        if self.photoHandler is None:
+                            self.bot.sendMessage(
+                                chat_id, f"Scusa {name}, prima dovresti scegliere un metodo fra quelli a disposizione prima di poter raffinare la ricerca.\nEcco una lista di comandi:\n\t/BOVW\n\t/Siamese\n\t/Color\n\t/BOVWColor"
+                            )
+                        else:
+                            self.RefineHandler(self.bot, message, chat_id, name, text)
+                    else:
+                        print("settp text")
+                        self.textHandler(self.bot, message, chat_id, name, text)
                 if messageType == 'photo':
                     if self.photoHandler is None:
                         self.bot.sendMessage(
@@ -75,7 +89,3 @@ class Updater:
             plt.axis('off')
             plt.imshow(plt.imread(path))
         plt.savefig(os.path.join(dir, "temp.png"), bbox_inches='tight')
-
-#if __name__ == "__main__":
-#    updater = Updater('128366843:AAHovviK9AQDbcWJkM9JkqDAt8B5oLUUCQI')
-#    updater.start()

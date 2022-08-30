@@ -1,4 +1,3 @@
-from importlib.resources import path
 import cv2
 from sklearn.cluster import KMeans
 from sklearn.svm import SVC
@@ -113,6 +112,7 @@ class BOVW(object):
         with open(image_train_path, 'rb') as f: train_paths = dill.load(f)
         # Load model
         bovw = BOVW.load_model(bovw_path)
+        
         # Divide paths
         dim1 = int(len(train_paths)/2)
         path_savory = train_paths[0:dim1]
@@ -129,7 +129,7 @@ class BOVW(object):
         similar_u = tree_u.query(feature, k=k, return_distance=False)
         print(f"{k} most similar found in: {perf_counter() - start}")
         
-        return prediction, [os.path.join(*path_savory[i].split('\\')[-5:]) for i in similar_s[0]], [os.path.join(*path_unsavory[i].split('\\')[-5:]) for i in similar_u[0]]
+        return prediction, [os.path.join(*path_savory[i].split('\\')[-5:]) for i in similar_s[0]], [os.path.join(*path_unsavory[i].split('\\')[-5:]) for i in similar_u[0]], feature
     
     
     def save_model(self, path):
@@ -160,3 +160,31 @@ class BOVW(object):
             except Exception as e:
                 pass
         plt.show()
+        
+    
+    @staticmethod
+    def refine_search(query_image_feature, selected_image_path:str, bovw_path:str, savory_path:str=None, unsavory_path:str=None, image_train_path:str=None, k:int=5):
+        if savory_path is None or unsavory_path is None or bovw_path is None or image_train_path is None: raise ValueError("Not a valid path!")
+        # Load train bovw
+        with open(savory_path, 'rb') as f: savory = dill.load(f)
+        with open(unsavory_path, 'rb') as f: unsavory = dill.load(f)
+        # Load train paths
+        with open(image_train_path, 'rb') as f: train_paths = dill.load(f)
+        # Load model
+        bovw = BOVW.load_model(bovw_path)
+        
+        # Divide paths
+        dim1 = int(len(train_paths)/2)
+        path_savory = train_paths[0:dim1]
+        path_unsavory = train_paths[dim1:len(train_paths)]
+        
+        _, sel_img_emb = bovw.predict_image(os.path.abspath(selected_image_path))
+        mean_emb = np.mean([query_image_feature, sel_img_emb], axis=0)
+        
+        tree_s = KDTree(savory)
+        tree_u = KDTree(unsavory)
+        
+        similar_s = tree_s.query(mean_emb, k=k, return_distance=False)
+        similar_u = tree_u.query(mean_emb, k=k, return_distance=False)
+        
+        return mean_emb, [os.path.join(*path_savory[i].split('\\')[-5:]) for i in similar_s[0]], [os.path.join(*path_unsavory[i].split('\\')[-5:]) for i in similar_u[0]]

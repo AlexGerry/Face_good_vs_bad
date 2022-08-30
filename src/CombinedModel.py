@@ -89,13 +89,16 @@ class CombinedModel(object):
         # Load model
         comb_model = CombinedModel.load_model(model_path)
         comb_model.get_models(CombinedModel.load_model('./src/BOVW/bovw/bovw.pkl'), CombinedModel.load_model('./src/Color/color/histogram_model.pkl'))
-        #load train savory unsavory
+        
+        # load train savory unsavory
         with open("./src/Combined_descriptors/combined/feature_savory.pkl", 'rb') as f: savory = dill.load(f)
         with open("./src/Combined_descriptors/combined/feature_unsavory.pkl", 'rb') as f: unsavory = dill.load(f)
+        
         # Divide train path
         dim1 = int(len(comb_model.images_path)/2)
         path_savory = comb_model.images_path[0:dim1]
         path_unsavory = comb_model.images_path[dim1:len(comb_model.images_path)]
+        
         prediction, feature = comb_model.predict_image(image_path)
 
         start = perf_counter()
@@ -108,4 +111,33 @@ class CombinedModel(object):
         similar_u = tree_u.query(feature, k=k, return_distance=False)
         print(f"{k} most similar found in: {perf_counter() - start}")
         
-        return prediction, [os.path.join(*path_savory[i].split('\\')[-5:]) for i in similar_s[0]], [os.path.join(*path_unsavory[i].split('\\')[-5:]) for i in similar_u[0]]
+        return prediction, [os.path.join(*path_savory[i].split('\\')[-5:]) for i in similar_s[0]], [os.path.join(*path_unsavory[i].split('\\')[-5:]) for i in similar_u[0]], feature
+    
+    
+    @staticmethod
+    def refine_search(query_image_feature, selected_image_path:str, model_path:str, features_train_path:str=None, image_train_path:str=None, k:int=5):
+        if model_path is None: raise ValueError("Not a valid path!")
+        # Load model
+        comb_model = CombinedModel.load_model(model_path)
+        comb_model.get_models(CombinedModel.load_model('./src/BOVW/bovw/bovw.pkl'), CombinedModel.load_model('./src/Color/color/histogram_model.pkl'))
+        
+        # load train savory unsavory
+        with open("./src/Combined_descriptors/combined/feature_savory.pkl", 'rb') as f: savory = dill.load(f)
+        with open("./src/Combined_descriptors/combined/feature_unsavory.pkl", 'rb') as f: unsavory = dill.load(f)
+        
+        # Divide train path
+        dim1 = int(len(comb_model.images_path)/2)
+        path_savory = comb_model.images_path[0:dim1]
+        path_unsavory = comb_model.images_path[dim1:len(comb_model.images_path)]
+        
+        _, sel_img_emb = comb_model.predict_image(os.path.abspath(selected_image_path))
+        mean_emb = np.mean([query_image_feature, sel_img_emb], axis=0)
+        
+        tree_s = KDTree(savory)
+        tree_u = KDTree(unsavory)
+        
+        similar_s = tree_s.query(mean_emb, k=k, return_distance=False)
+        similar_u = tree_u.query(mean_emb, k=k, return_distance=False)
+        
+        return mean_emb, [os.path.join(*path_savory[i].split('\\')[-5:]) for i in similar_s[0]], [os.path.join(*path_unsavory[i].split('\\')[-5:]) for i in similar_u[0]]
+    
