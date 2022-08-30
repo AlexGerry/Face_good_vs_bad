@@ -24,24 +24,29 @@ class DeepModel(object):
         self, classifier_path:str, 
         siamese_embeddings_path:str, 
         image_train_paths:str=None,
-        image_train_features:str=None,
+        savory_path:str=None,
+        unsavory_path:str=None,
         image_size:Tuple=(200,200)
         ) -> None:
         
         self.classifier = None
         self.image_train_paths = None
-        self.image_train_features = None
+        self.savory = None
+        self.unsavory = None
         self.target_shape = image_size
         self.siamese_embeddings = self.__load_model(siamese_embeddings_path)
         with open(classifier_path, "rb") as f:
             self.classifier = pickle.load(f)
         with open(image_train_paths, "rb") as f:
             self.image_train_paths = pickle.load(f)
-        with open(image_train_features, "rb") as f:
-            self.image_train_features = pickle.load(f)
+        with open(savory_path, "rb") as f:
+            self.savory = pickle.load(f)
+        with open(unsavory_path, "rb") as f:
+            self.unsavory = pickle.load(f)
         
         start = perf_counter()
-        self.kdtree = KDTree(self.image_train_features)
+        self.kdtree_s = KDTree(self.savory)
+        self.kdtree_u = KDTree(self.unsavory)
         print(f"KDTree computed in: {perf_counter() - start}")
 
 
@@ -120,7 +125,7 @@ class DeepModel(object):
         return [self.siamese_embeddings(tf.expand_dims(image, axis=0)).numpy()[0]]
     
     
-    def cbir(self, image, k:int=10) -> list:
+    def cbir(self, image, k:int=5) -> list:
         """ This function outputs the most k similar image to the one given in input.
         
             Parameters:
@@ -139,10 +144,11 @@ class DeepModel(object):
         feature = self.extract_features(image)
         
         start = perf_counter()
-        similar = self.kdtree.query(feature, k=k, return_distance=False)
+        similar_s = self.kdtree_s.query(feature, k=k, return_distance=False)
+        similar_u = self.kdtree_u.query(feature, k=k, return_distance=False)
         print(f"{k} most similar found in: {perf_counter() - start}")
         
-        return [os.path.join("..", *self.image_train_paths[i].parts[-4:]) for i in similar[0]]
+        return [os.path.join("..", *self.image_train_paths[i].parts[-4:]) for i in similar_s[0]], [os.path.join("..", *self.image_train_paths[i].parts[-4:]) for i in similar_u[0]]
     
     
     @staticmethod

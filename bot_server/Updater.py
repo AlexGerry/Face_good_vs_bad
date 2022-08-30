@@ -62,11 +62,16 @@ class Updater:
                 
                 
     @staticmethod
-    def imageSubplot(similar, dir):
-        fig, axes = plt.subplots(nrows=len(similar), ncols=1, figsize=(20, 20))
-        for i, path in enumerate(similar):
-            plt.subplot(len(similar), 1, i+1)
+    def imageSubplot(similar_s, similar_u, dir):
+        fig, axes = plt.subplots(nrows=2, ncols=5, figsize=(20, 20))
+        for i, path in enumerate(similar_s):
+            plt.subplot(2, 5, i+1)
             plt.title(f"{i+1}")
+            plt.axis('off')
+            plt.imshow(plt.imread(path))
+        for i, path in enumerate(similar_u):
+            plt.subplot(2, 5, i+6)
+            plt.title(f"{i+6}")
             plt.axis('off')
             plt.imshow(plt.imread(path))
         plt.savefig(os.path.join(dir, "temp.png"), bbox_inches='tight')

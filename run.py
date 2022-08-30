@@ -11,7 +11,8 @@ from src.CombinedModel import CombinedModel
 # Siamese model paths
 classifier_path = "./src/CNN_training/Classifier/svm_final_nu03.sav"
 siamese_embeddings = "./src/CNN_training/final_siamese_embedding_model"
-image_train_features = "./src/CNN_training/Features/feature_final.pkl"
+siamese_savory = "./src/CNN_training/Features/feature_savory.pkl"
+siamese_unsavory = "./src/CNN_training/Features/feature_unsavory.pkl"
 image_train_paths = "./src/CNN_training/Features/path_final.pkl"
 
 # BOVW paths
@@ -51,7 +52,7 @@ def image_handler(tipo:str):
                 
                 if tipo == "/Siamese":
                     result = model.predict(path)
-                    most_similar = model.cbir(image)
+                    most_similar_s, most_similar_u = model.cbir(image)
                 elif tipo == "/BOVW":
                     result, most_similar = BOVW.cbir(bovw_path, path, train_voc_path, train_image_path)
                 elif tipo == "/Color":
@@ -69,9 +70,9 @@ def image_handler(tipo:str):
                 bot.sendMessage(
                     chat_id, f"Ora, {name}, Ti farò vedere a chi assomigli di più!"
                 )
-                Updater.imageSubplot(most_similar, temp_dir.name)
+                Updater.imageSubplot(most_similar_s, most_similar_u, temp_dir.name)
                 bot.sendImage(
-                    chat_id, os.path.join(temp_dir.name, "temp.png"), f"Ecco i {len(most_similar)} più simili!"
+                    chat_id, os.path.join(temp_dir.name, "temp.png"), f"Ecco i {len(most_similar_s)*2} più simili!"
                 )
         else:
             bot.sendMessage(
@@ -100,7 +101,8 @@ if __name__ == '__main__':
         classifier_path, 
         siamese_embeddings, 
         image_train_paths, 
-        image_train_features, 
+        siamese_savory,
+        siamese_unsavory, 
         (200, 200)
         )
     bot = Updater(TOKEN)
