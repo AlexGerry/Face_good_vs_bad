@@ -44,6 +44,9 @@ class DeepModel(object):
         with open(unsavory_path, "rb") as f:
             self.unsavory = pickle.load(f)
         
+        dim1 = int(len(self.image_train_paths)/2)
+        self.path_savory = self.image_train_paths[0:dim1]
+        self.path_unsavory = self.image_train_paths[dim1:len(self.image_train_paths)]
         start = perf_counter()
         self.kdtree_s = KDTree(self.savory)
         self.kdtree_u = KDTree(self.unsavory)
@@ -148,7 +151,7 @@ class DeepModel(object):
         similar_u = self.kdtree_u.query(feature, k=k, return_distance=False)
         print(f"{k} most similar found in: {perf_counter() - start}")
         
-        return [os.path.join("..", *self.image_train_paths[i].parts[-4:]) for i in similar_s[0]], [os.path.join("..", *self.image_train_paths[i].parts[-4:]) for i in similar_u[0]]
+        return [os.path.join("..", *self.path_savory[i].parts[-4:]) for i in similar_s[0]], [os.path.join("..", *self.path_unsavory[i].parts[-4:]) for i in similar_u[0]]
     
     
     @staticmethod

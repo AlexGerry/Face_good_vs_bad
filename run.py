@@ -17,7 +17,8 @@ image_train_paths = "./src/CNN_training/Features/path_final.pkl"
 
 # BOVW paths
 bovw_path = './src/BOVW/bovw/bovw.pkl'
-train_voc_path = './src/BOVW/bovw/train_bovw.pkl'
+bovw_savory = './src/BOVW/bovw/feature_savory.pkl'
+bovw_unsavory = './src/BOVW/bovw/feature_unsavory.pkl'
 train_image_path = './src/BOVW/bovw/train_paths.pkl'
 
 # Color paths
@@ -54,7 +55,7 @@ def image_handler(tipo:str):
                     result = model.predict(path)
                     most_similar_s, most_similar_u = model.cbir(image)
                 elif tipo == "/BOVW":
-                    result, most_similar = BOVW.cbir(bovw_path, path, train_voc_path, train_image_path)
+                    result, most_similar_s, most_similar_u = BOVW.cbir(bovw_path, path, bovw_savory, bovw_unsavory, train_image_path)
                 elif tipo == "/Color":
                     result, most_similar = ColorHistogram.cbir(color_path, path, train_color_path, train_image_path)
                 elif tipo == "/BOVWColor":
