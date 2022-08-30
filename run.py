@@ -60,7 +60,7 @@ def image_handler(tipo:str):
                 elif tipo == "/Color":
                     result, most_similar_s, most_similar_u = ColorHistogram.cbir(color_path, path, color_savory, color_unsavory, train_image_path)
                 elif tipo == "/BOVWColor":
-                    result, most_similar = CombinedModel.cbir(combined_path, path, None, None)
+                    result, most_similar_s, most_similar_u = CombinedModel.cbir(combined_path, path, None, None)
                     
                 if result[0] == "savory":
                     bot.sendMessage(chat_id, "Complimenti! La tua faccia è buona! \N{smiling face with halo}")

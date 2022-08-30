@@ -84,19 +84,28 @@ class CombinedModel(object):
         return self.forest.predict(descr), descr
     
     
-    def cbir(model_path, image_path, features_train_path:str=None, image_train_path:str=None, k:int=10):
+    def cbir(model_path, image_path, features_train_path:str=None, image_train_path:str=None, k:int=5):
         if model_path is None: raise ValueError("Not a valid path!")
         # Load model
         comb_model = CombinedModel.load_model(model_path)
         comb_model.get_models(CombinedModel.load_model('./src/BOVW/bovw/bovw.pkl'), CombinedModel.load_model('./src/Color/color/histogram_model.pkl'))
-        
+        #load train savory unsavory
+        with open("./src/Combined_descriptors/combined/feature_savory.pkl", 'rb') as f: savory = dill.load(f)
+        with open("./src/Combined_descriptors/combined/feature_unsavory.pkl", 'rb') as f: unsavory = dill.load(f)
+        # Divide train path
+        dim1 = int(len(comb_model.images_path)/2)
+        path_savory = comb_model.images_path[0:dim1]
+        path_unsavory = comb_model.images_path[dim1:len(comb_model.images_path)]
         prediction, feature = comb_model.predict_image(image_path)
+
         start = perf_counter()
-        tree = KDTree(comb_model.features)
+        tree_s = KDTree(savory)
+        tree_u = KDTree(unsavory)
         print(f"KDTree computed in: {perf_counter() - start}")
         
         start = perf_counter()
-        similar = tree.query(feature, k=k, return_distance=False)
+        similar_s = tree_s.query(feature, k=k, return_distance=False)
+        similar_u = tree_u.query(feature, k=k, return_distance=False)
         print(f"{k} most similar found in: {perf_counter() - start}")
         
-        return prediction, [os.path.join(*comb_model.images_path[i].split('\\')[-5:]) for i in similar[0]]
+        return prediction, [os.path.join(*path_savory[i].split('\\')[-5:]) for i in similar_s[0]], [os.path.join(*path_unsavory[i].split('\\')[-5:]) for i in similar_u[0]]
