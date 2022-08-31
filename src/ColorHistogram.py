@@ -92,9 +92,6 @@ class ColorHistogram(object):
         color_model = ColorHistogram.load_model(model_path)
         
         # Divide train path
-        #dim1 = int(len(train_paths)/2)
-        #path_savory = train_paths[0:dim1]
-        #path_unsavory = train_paths[dim1:len(train_paths)]
         train_paths = np.asarray(train_paths)
         path_unsavory = [x for x in train_paths if 'unsavory' in x]
         path_savory = np.setdiff1d(train_paths, path_unsavory)

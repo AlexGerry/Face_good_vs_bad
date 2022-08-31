@@ -23,9 +23,9 @@ bovw_unsavory = './src/BOVW/bovw/feature_unsavory.pkl'
 train_image_path = './src/BOVW/bovw/train_paths.pkl'
 
 # Color paths
-color_path = "./src/Color/color/histogram_model.pkl"
-color_savory = "./src/Color/color/feature_savory.pkl"
-color_unsavory = "./src/Color/color/feature_unsavory.pkl"
+color_path = "./src/Color/color_withus/histogram_model.pkl"
+color_savory = "./src/Color/color_withus/feature_savory.pkl"
+color_unsavory = "./src/Color/color_withus/feature_unsavory.pkl"
 
 # Combined paths
 combined_path = "./src/Combined_descriptors/combined/combined_model.pkl"
