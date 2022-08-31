@@ -19,7 +19,7 @@ from tqdm import tqdm
 from keras.callbacks import EarlyStopping, ReduceLROnPlateau
 
 SEED = 42
-DATASET_PATH = "C:/Users/Alessandro/Desktop/università/visual image/dataset/"
+DATASET_PATH = "C:/Users/Alessandro/Desktop/universita/visual_image/dataset/"
 BATCH_SIZE = 8
 target_shape = (200,200)
 
@@ -160,6 +160,8 @@ def main():
     positive, negative, anchor = load_data(train_path, 3)
     np.random.shuffle(negative)
     np.random.shuffle(anchor)
+    positive = positive[0:len(negative)]
+    anchor = anchor[0:len(negative)]
     triples = (anchor, positive, negative)
     train = tf.data.Dataset.from_tensor_slices(triples)
 
@@ -233,7 +235,7 @@ def main():
     negative_similarity = cosine_similarity(anchor_embedding, negative_embedding)
     print("Negative similarity", negative_similarity.numpy())
 
-    embedding.save("./siamese_embedding_model")
+    embedding.save("./final_siamese_embedding_model_withus")
 
 
 if __name__ == "__main__":
