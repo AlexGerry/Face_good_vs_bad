@@ -76,16 +76,19 @@ class Updater:
                 
                 
     @staticmethod
-    def imageSubplot(similar_s, similar_u, dir):
+    def imageSubplot(similar_s, similar_u, dir, dist_s, dist_u):
+        import numpy as np
         fig, axes = plt.subplots(nrows=2, ncols=5, figsize=(20, 20))
+        fig.suptitle('** I row: Savory - II row Unsavory **', fontsize=20)
+        idx = np.argsort(np.argsort(np.concatenate((dist_s[0], dist_u[0]))))
         for i, path in enumerate(similar_s):
             plt.subplot(2, 5, i+1)
-            plt.title(f"{i+1}")
+            plt.title(f"/{i+1} - Rank: {idx[i]+1} - dist: {np.round(dist_s[0][i], decimals=3)}")
             plt.axis('off')
             plt.imshow(plt.imread(path))
         for i, path in enumerate(similar_u):
             plt.subplot(2, 5, i+6)
-            plt.title(f"{i+6}")
+            plt.title(f"/{i+6} - Rank: {idx[i+5]+1}- dist: {np.round(dist_u[0][i], decimals=3)}")
             plt.axis('off')
             plt.imshow(plt.imread(path))
         plt.savefig(os.path.join(dir, "temp.png"), bbox_inches='tight')

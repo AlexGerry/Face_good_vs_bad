@@ -107,11 +107,15 @@ class CombinedModel(object):
         print(f"KDTree computed in: {perf_counter() - start}")
         
         start = perf_counter()
-        similar_s = tree_s.query(feature, k=k, return_distance=False)
-        similar_u = tree_u.query(feature, k=k, return_distance=False)
+        dist_s, similar_s = tree_s.query(feature, k=k, return_distance=True)
+        dist_u, similar_u = tree_u.query(feature, k=k, return_distance=True)
         print(f"{k} most similar found in: {perf_counter() - start}")
         
-        return prediction, [os.path.join(*path_savory[i].split('\\')[-5:]) for i in similar_s[0]], [os.path.join(*path_unsavory[i].split('\\')[-5:]) for i in similar_u[0]], feature
+        return prediction,\
+            [os.path.join(*path_savory[i].split('\\')[-5:]) for i in similar_s[0]],\
+            [os.path.join(*path_unsavory[i].split('\\')[-5:]) for i in similar_u[0]],\
+            feature,\
+            dist_s, dist_u
     
     
     @staticmethod
@@ -136,8 +140,11 @@ class CombinedModel(object):
         tree_s = KDTree(savory)
         tree_u = KDTree(unsavory)
         
-        similar_s = tree_s.query(mean_emb, k=k, return_distance=False)
-        similar_u = tree_u.query(mean_emb, k=k, return_distance=False)
+        dist_s, similar_s = tree_s.query(mean_emb, k=k, return_distance=True)
+        dist_u, similar_u = tree_u.query(mean_emb, k=k, return_distance=True)
         
-        return mean_emb, [os.path.join(*path_savory[i].split('\\')[-5:]) for i in similar_s[0]], [os.path.join(*path_unsavory[i].split('\\')[-5:]) for i in similar_u[0]]
+        return mean_emb,\
+            [os.path.join(*path_savory[i].split('\\')[-5:]) for i in similar_s[0]],\
+            [os.path.join(*path_unsavory[i].split('\\')[-5:]) for i in similar_u[0]],\
+            dist_s, dist_u
     

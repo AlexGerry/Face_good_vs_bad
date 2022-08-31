@@ -147,11 +147,14 @@ class DeepModel(object):
         feature = self.extract_features(image)
         
         start = perf_counter()
-        similar_s = self.kdtree_s.query(feature, k=k, return_distance=False)
-        similar_u = self.kdtree_u.query(feature, k=k, return_distance=False)
+        dist_s, similar_s = self.kdtree_s.query(feature, k=k, return_distance=True)
+        dist_u, similar_u = self.kdtree_u.query(feature, k=k, return_distance=True)
         print(f"{k} most similar found in: {perf_counter() - start}")
         
-        return [os.path.join("..", *self.path_savory[i].parts[-4:]) for i in similar_s[0]], [os.path.join("..", *self.path_unsavory[i].parts[-4:]) for i in similar_u[0]], feature
+        return [os.path.join("..", *self.path_savory[i].parts[-4:]) for i in similar_s[0]],\
+            [os.path.join("..", *self.path_unsavory[i].parts[-4:]) for i in similar_u[0]],\
+            feature,\
+            dist_s, dist_u 
     
     
     def refine_search(self, query_image_feature, selected_image_path:str, k:int=5):
@@ -159,10 +162,13 @@ class DeepModel(object):
         sel_img_emb = self.extract_features(img)
         mean_emb = np.mean([query_image_feature, sel_img_emb], axis=0)
                 
-        similar_s = self.kdtree_s.query(mean_emb, k=k, return_distance=False)
-        similar_u = self.kdtree_u.query(mean_emb, k=k, return_distance=False)
+        dist_s, similar_s = self.kdtree_s.query(mean_emb, k=k, return_distance=True)
+        dist_u, similar_u = self.kdtree_u.query(mean_emb, k=k, return_distance=True)
         
-        return mean_emb, [os.path.join("..", *self.path_savory[i].parts[-4:]) for i in similar_s[0]], [os.path.join("..", *self.path_unsavory[i].parts[-4:]) for i in similar_u[0]]
+        return mean_emb,\
+            [os.path.join("..", *self.path_savory[i].parts[-4:]) for i in similar_s[0]],\
+            [os.path.join("..", *self.path_unsavory[i].parts[-4:]) for i in similar_u[0]],\
+            dist_s, dist_u
     
     
     @staticmethod

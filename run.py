@@ -60,13 +60,13 @@ def image_handler(tipo:str):
                 
                 if tipo == "/Siamese":
                     result = model.predict(path)
-                    most_similar_s, most_similar_u, feature = model.cbir(image)
+                    most_similar_s, most_similar_u, feature, dist_s, dist_u = model.cbir(image)
                 elif tipo == "/BOVW":
-                    result, most_similar_s, most_similar_u, feature = BOVW.cbir(bovw_path, path, bovw_savory, bovw_unsavory, train_image_path)
+                    result, most_similar_s, most_similar_u, feature, dist_s, dist_u = BOVW.cbir(bovw_path, path, bovw_savory, bovw_unsavory, train_image_path)
                 elif tipo == "/Color":
-                    result, most_similar_s, most_similar_u, feature = ColorHistogram.cbir(color_path, path, color_savory, color_unsavory, train_image_path)
+                    result, most_similar_s, most_similar_u, feature, dist_s, dist_u = ColorHistogram.cbir(color_path, path, color_savory, color_unsavory, train_image_path)
                 elif tipo == "/BOVWColor":
-                    result, most_similar_s, most_similar_u, feature = CombinedModel.cbir(combined_path, path, None, None)
+                    result, most_similar_s, most_similar_u, feature, dist_s, dist_u = CombinedModel.cbir(combined_path, path, None, None)
                     
                 similar_by_chatId[chat_id] = [tipo, feature, np.concatenate((most_similar_s, most_similar_u))] # -> tipo modello utilizzato, img query feature, img result
                 print("similar_by_chatId:", similar_by_chatId)
@@ -81,7 +81,7 @@ def image_handler(tipo:str):
                 bot.sendMessage(
                     chat_id, f"Ora, {name}, Ti farò vedere a chi assomigli di più!"
                 )
-                Updater.imageSubplot(most_similar_s, most_similar_u, temp_dir.name)
+                Updater.imageSubplot(most_similar_s, most_similar_u, temp_dir.name, dist_s, dist_u)
                 bot.sendImage(
                     chat_id, os.path.join(temp_dir.name, "temp.png"), f"Ecco i {len(most_similar_s)*2} più simili!"
                 )
@@ -112,19 +112,19 @@ def refineSearch_handler(theBot):
             print(selected_img)
             # Get mean embedding between query img and selected img
             if model_type == "/Siamese":
-                mean_emb, most_similar_s, most_similar_u = model.refine_search(query_img_feature, selected_img)
+                mean_emb, most_similar_s, most_similar_u, dist_s, dist_u = model.refine_search(query_img_feature, selected_img)
             elif model_type == "/BOVW":
-                mean_emb, most_similar_s, most_similar_u = BOVW.refine_search(query_img_feature, selected_img, bovw_path, bovw_savory, bovw_unsavory, train_image_path)
+                mean_emb, most_similar_s, most_similar_u, dist_s, dist_u = BOVW.refine_search(query_img_feature, selected_img, bovw_path, bovw_savory, bovw_unsavory, train_image_path)
             elif model_type == "/Color":
-                mean_emb, most_similar_s, most_similar_u = ColorHistogram.refine_search(query_img_feature, selected_img, color_path, color_savory, color_unsavory, train_image_path)
+                mean_emb, most_similar_s, most_similar_u, dist_s, dist_u = ColorHistogram.refine_search(query_img_feature, selected_img, color_path, color_savory, color_unsavory, train_image_path)
             elif model_type == "/BOVWColor":
-                mean_emb, most_similar_s, most_similar_u = CombinedModel.refine_search(query_img_feature, selected_img, combined_path, None, None)
+                mean_emb, most_similar_s, most_similar_u, dist_s, dist_u = CombinedModel.refine_search(query_img_feature, selected_img, combined_path, None, None)
             
             # Update similar for iterative refinements
             similar_by_chatId[chat_id][1] = mean_emb
             similar_by_chatId[chat_id][2] = np.concatenate((most_similar_s, most_similar_u))
             
-            Updater.imageSubplot(most_similar_s, most_similar_u, temp_dir.name)
+            Updater.imageSubplot(most_similar_s, most_similar_u, temp_dir.name, dist_s, dist_u)
             bot.sendImage(
                 chat_id, os.path.join(temp_dir.name, "temp.png"), f"Ecco i {len(most_similar_s)*2} più simili dopo il raffinamento!"
             )
