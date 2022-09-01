@@ -78,7 +78,7 @@ class Updater:
     @staticmethod
     def imageSubplot(similar_s, similar_u, dir, dist_s, dist_u):
         import numpy as np
-        fig, axes = plt.subplots(nrows=2, ncols=5, figsize=(20, 20))
+        fig, axes = plt.subplots(nrows=2, ncols=5, figsize=(20, 10))
         fig.suptitle('** I row: Savory - II row Unsavory **', fontsize=20)
         idx = np.argsort(np.argsort(np.concatenate((dist_s[0], dist_u[0]))))
         for i, path in enumerate(similar_s):
