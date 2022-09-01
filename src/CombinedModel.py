@@ -121,7 +121,7 @@ class CombinedModel(object):
     
     
     @staticmethod
-    def refine_search(query_image_feature, selected_image_path:str, model_path:str, features_train_path:str=None, image_train_path:str=None, k:int=5):
+    def refine_search(i, query_image_feature, selected_image_path:str, model_path:str, features_train_path:str=None, image_train_path:str=None, k:int=5):
         if model_path is None: raise ValueError("Not a valid path!")
         # Load model
         comb_model = CombinedModel.load_model(model_path)
@@ -138,7 +138,8 @@ class CombinedModel(object):
         path_savory = np.setdiff1d(train_paths, path_unsavory)
         
         _, sel_img_emb = comb_model.predict_image(os.path.abspath(selected_image_path))
-        mean_emb = np.mean([query_image_feature, sel_img_emb], axis=0)
+        #mean_emb = np.mean([query_image_feature, sel_img_emb], axis=0)
+        mean_emb = (np.sum([query_image_feature, sel_img_emb], axis=0) * float(i)) / float(i+1)
         
         tree_s = KDTree(savory)
         tree_u = KDTree(unsavory)

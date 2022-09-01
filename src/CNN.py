@@ -3,22 +3,15 @@ import tensorflow as tf
 from tensorflow import keras
 import numpy as np
 from keras import models
-from keras.preprocessing import image
-from PIL import Image
-from mtcnn.mtcnn import MTCNN
 from matplotlib.pyplot import imread
-import keras_tuner as kt
-#from utils import build_model
 from tqdm import tqdm
 from time import perf_counter
 from sklearn.neighbors import KDTree
 from pathlib import Path
 import dill
-import sys
 
 
 class CNN(object):
-    detector = MTCNN()
     
     def __init__(self, model_path:str=None) -> None:
         
@@ -170,7 +163,7 @@ class CNN(object):
             dist_s, dist_u  
     
     
-    def refine_search(self, query_image_feature, selected_image_path:str, savory_path:str=None, unsavory_path:str=None, image_train_path:str=None, k:int=5):
+    def refine_search(self, i, query_image_feature, selected_image_path:str, savory_path:str=None, unsavory_path:str=None, image_train_path:str=None, k:int=5):
         if savory_path is None or unsavory_path is None or image_train_path is None: raise ValueError("Not a valid path!")
         # Load train bovw
         with open(savory_path, 'rb') as f: savory = dill.load(f)
@@ -185,7 +178,8 @@ class CNN(object):
         
         img = self.load_image(selected_image_path)
         sel_img_emb = self.extract_feature(img).reshape(1, -1)
-        mean_emb = np.mean([query_image_feature, sel_img_emb], axis=0)
+        #mean_emb = np.mean([query_image_feature, sel_img_emb], axis=0)
+        mean_emb = (np.sum([query_image_feature, sel_img_emb], axis=0) * float(i)) / float(i+1)
         
         savory = np.reshape(savory, (len(savory),-1))
         unsavory = np.reshape(unsavory, (len(unsavory),-1))
@@ -200,25 +194,5 @@ class CNN(object):
             [os.path.join("..", *path_savory[i].split('\\')[-4:]) for i in similar_s[0]],\
             [os.path.join("..", *path_unsavory[i].split('\\')[-4:]) for i in similar_u[0]],\
             dist_s, dist_u
-    
-    
-    @staticmethod
-    def find_faces(image_path):
-        res = []
-        img = imread(image_path)
-        result_list = CNN.detector.detect_faces(img)
-        if len(result_list) == 1:
-            [X, Y, W, H] = result_list[0]['box']
-            crop = img[Y:Y+H, X:X+W]
-            faces_found = CNN.detector.detect_faces(crop)
-            if len(faces_found) == 1:
-                res.append(crop)
-        elif len(result_list) > 1:
-            for result in result_list:
-                [X, Y, W, H] = result['box']
-                crop = img[Y:Y+H, X:X+W]
-                faces_found = CNN.detector.detect_faces(crop)
-                if len(faces_found) == 1:
-                    res.append(crop)
-        return res 
+            
     

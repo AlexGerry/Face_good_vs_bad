@@ -37,7 +37,7 @@ TOKEN = "5758831231:AAFqcnYeS79nJ19ZwIoyJWbVv6Cbn6jSbnI"
 
 # Track similar retrieved images by user id to refine search
 # Keys -> User Chat ID
-# Values -> [model type, img query feature, path imgs results]
+# Values -> [model type, img query feature, path imgs results, refine counter]
 similar_by_chatId = {}
 
 
@@ -71,7 +71,7 @@ def image_handler(tipo:str):
                 elif tipo == "/BOVWColor":
                     result, most_similar_s, most_similar_u, feature, dist_s, dist_u = CombinedModel.cbir(combined_withus_path, path, None, train_image_path)
                     
-                similar_by_chatId[chat_id] = [tipo, feature, np.concatenate((most_similar_s, most_similar_u))] # -> tipo modello utilizzato, img query feature, img result
+                similar_by_chatId[chat_id] = [tipo, feature, np.concatenate((most_similar_s, most_similar_u)), 1] # -> tipo modello utilizzato, img query feature, img result, refine counter
                 print("similar_by_chatId:", similar_by_chatId)
                 
                 if result[0] == "savory":
@@ -109,23 +109,24 @@ def refineSearch_handler(theBot):
                 chat_id, f"{name}, adesso raffinerò la ricerca in base al tuo suggerimento..."
             )
             image_idx = int(text[-1])
-            model_type, query_img_feature, query_res = similar_by_chatId[chat_id]
-            print(model_type, query_img_feature, query_res)
+            model_type, query_img_feature, query_res, refine_counter = similar_by_chatId[chat_id]
+            print(model_type, query_img_feature, query_res, refine_counter)
             selected_img = query_res[image_idx-1]
             print(selected_img)
             # Get mean embedding between query img and selected img
             if model_type == "/Siamese":
-                mean_emb, most_similar_s, most_similar_u, dist_s, dist_u = model.refine_search(query_img_feature, selected_img)
+                mean_emb, most_similar_s, most_similar_u, dist_s, dist_u = model.refine_search(refine_counter, query_img_feature, selected_img)
             elif model_type == "/BOVW":
-                mean_emb, most_similar_s, most_similar_u, dist_s, dist_u = BOVW.refine_search(query_img_feature, selected_img, bovw_path, bovw_savory, bovw_unsavory, train_image_path)
+                mean_emb, most_similar_s, most_similar_u, dist_s, dist_u = BOVW.refine_search(refine_counter, query_img_feature, selected_img, bovw_path, bovw_savory, bovw_unsavory, train_image_path)
             elif model_type == "/Color":
-                mean_emb, most_similar_s, most_similar_u, dist_s, dist_u = ColorHistogram.refine_search(query_img_feature, selected_img, color_path, color_savory, color_unsavory, train_image_path)
+                mean_emb, most_similar_s, most_similar_u, dist_s, dist_u = ColorHistogram.refine_search(refine_counter, query_img_feature, selected_img, color_path, color_savory, color_unsavory, train_image_path)
             elif model_type == "/BOVWColor":
-                mean_emb, most_similar_s, most_similar_u, dist_s, dist_u = CombinedModel.refine_search(query_img_feature, selected_img, combined_withus_path, None, train_image_path)
+                mean_emb, most_similar_s, most_similar_u, dist_s, dist_u = CombinedModel.refine_search(refine_counter, query_img_feature, selected_img, combined_withus_path, None, train_image_path)
             
             # Update similar for iterative refinements
             similar_by_chatId[chat_id][1] = mean_emb
             similar_by_chatId[chat_id][2] = np.concatenate((most_similar_s, most_similar_u))
+            similar_by_chatId[chat_id][3] += 1
             
             Updater.imageSubplot(most_similar_s, most_similar_u, temp_dir.name, dist_s, dist_u)
             bot.sendImage(
