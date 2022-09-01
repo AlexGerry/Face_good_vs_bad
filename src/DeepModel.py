@@ -15,6 +15,8 @@ import shutil
 from tqdm import tqdm
 from time import perf_counter
 from sklearn.neighbors import KDTree
+import skimage
+from src.Preprocess import find_face_and_preprocess
 
 
 class DeepModel(object):
@@ -169,25 +171,23 @@ class DeepModel(object):
             [os.path.join("..", *self.path_savory[i].parts[-4:]) for i in similar_s[0]],\
             [os.path.join("..", *self.path_unsavory[i].parts[-4:]) for i in similar_u[0]],\
             dist_s, dist_u
-    
-    
-    @staticmethod
-    def find_faces(image_path):
-        res = []
-        img = imread(image_path)
-        result_list = DeepModel.detector.detect_faces(img)
-        if len(result_list) == 1:
-            [X, Y, W, H] = result_list[0]['box']
-            crop = img[Y:Y+H, X:X+W]
-            faces_found = DeepModel.detector.detect_faces(crop)
-            if len(faces_found) == 1:
-                res.append(crop)
-        elif len(result_list) > 1:
-            for result in result_list:
-                [X, Y, W, H] = result['box']
-                crop = img[Y:Y+H, X:X+W]
-                faces_found = DeepModel.detector.detect_faces(crop)
-                if len(faces_found) == 1:
-                    res.append(crop)
-        return res 
+
+#    def find_faces(image_path):
+#        res = []
+#        img = imread(image_path)
+#        result_list = DeepModel.detector.detect_faces(img)
+#        if len(result_list) == 1:
+#            [X, Y, W, H] = result_list[0]['box']
+#            crop = img[Y:Y+H, X:X+W]
+#            faces_found = DeepModel.detector.detect_faces(crop)
+#            if len(faces_found) == 1:
+#                res.append(crop)
+#        elif len(result_list) > 1:
+#            for result in result_list:
+#                [X, Y, W, H] = result['box']
+#                crop = img[Y:Y+H, X:X+W]
+#                faces_found = DeepModel.detector.detect_faces(crop)
+#                if len(faces_found) == 1:
+#                    res.append(crop)
+#        return res 
     
