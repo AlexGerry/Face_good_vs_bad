@@ -1,8 +1,12 @@
 import keras_tuner as kt
 from tensorflow import keras
-from keras import layers, regularizers, optimizers, losses
+from keras import layers, regularizers
 import tensorflow as tf
 import numpy as np
+from sklearn.metrics import confusion_matrix, classification_report
+import os
+import matplotlib.pyplot as plt
+import seaborn as sns
 
 
 INPUT_SHAPE = (224, 224, 3, )
@@ -87,3 +91,42 @@ def prepare_dataset(dataset, seed, autotune, batch_size, augment=False):
 
     # Use buffered prefetching on all datasets
     return dataset.batch(batch_size).cache().prefetch(buffer_size=autotune)
+
+
+def plot_history(history, x_plot, name="plot.png"):
+    os.makedirs("./Results", exist_ok=True)
+    plt.figure()
+    plt.xlabel('Epochs')
+    plt.ylabel('Loss')
+    plt.plot(x_plot, history.history['loss'])
+    plt.plot(x_plot, history.history['val_loss'])
+    plt.legend(['Training', 'Validation'])
+    plt.savefig("./Results/"+name, dpi=100)
+    plt.close()
+
+    plt.figure()
+    plt.xlabel('Epochs')
+    plt.ylabel('Accuracy')
+    plt.plot(x_plot, history.history['accuracy'])
+    plt.plot(x_plot, history.history['val_accuracy'])
+    plt.legend(['Training', 'Validation'], loc='lower right')
+    plt.savefig("./Results/"+name, dpi=100)
+    plt.close()
+    
+    
+def plot_confusionMatrix(labels, predictions, name="cm.png"):
+    print(classification_report(labels, predictions))
+    cm = confusion_matrix(labels, predictions)
+    plt.figure(figsize=(10, 10))
+    sns.heatmap(cm, annot=True, fmt="d")
+    plt.title('Confusion matrix')
+    plt.ylabel('Actual label')
+    plt.xlabel('Predicted label')
+
+    print('True Negatives: ', cm[0][0])
+    print('False Positives: ', cm[0][1])
+    print('False Negatives: ', cm[1][0])
+    print('True Positives: ', cm[1][1])
+    os.makedirs("./Results", exist_ok=True)
+    plt.savefig("./Results/"+name, dpi=100)
+    plt.close()
