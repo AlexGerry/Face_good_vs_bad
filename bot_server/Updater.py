@@ -45,9 +45,7 @@ class Updater:
                 # call right functors
                 if messageType == 'text':
                     text = message['text']
-                    print("updater text:", text)
                     if text in ['/'+str(i) for i in range(1, 11)]:
-                        print("settp refine")
                         if self.photoHandler is None:
                             self.bot.sendMessage(
                                 chat_id, f"Scusa {name}, prima dovresti scegliere un metodo fra quelli a disposizione prima di poter raffinare la ricerca.\nEcco una lista di comandi:\n\t/BOVW\n\t/Color\n\t/BOVWColor\n\t/CNN"
@@ -55,7 +53,6 @@ class Updater:
                         else:
                             self.RefineHandler(self.bot, message, chat_id, name, text)
                     else:
-                        print("settp text")
                         self.textHandler(self.bot, message, chat_id, name, text)
                 if messageType == 'photo':
                     if self.photoHandler is None:

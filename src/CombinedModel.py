@@ -77,11 +77,11 @@ class CombinedModel(object):
         descr = []
         for m in self.models:
             ff = []
-            _, ff = getattr(m, "predict_image")(image_path)
+            _, _, ff = getattr(m, "predict_image")(image_path)
             descr.append(ff)
         descr = np.concatenate(descr, axis=1)
         # Predict
-        return self.forest.predict(descr), descr
+        return self.forest.predict_proba(descr), self.forest.predict(descr), descr
     
     
     @staticmethod
@@ -101,7 +101,7 @@ class CombinedModel(object):
         path_unsavory = [x for x in train_paths if 'unsavory' in x]
         path_savory = np.setdiff1d(train_paths, path_unsavory)
         
-        prediction, feature = comb_model.predict_image(image_path)
+        pred_score, prediction, feature = comb_model.predict_image(image_path)
 
         start = perf_counter()
         tree_s = KDTree(savory)
@@ -113,7 +113,7 @@ class CombinedModel(object):
         dist_u, similar_u = tree_u.query(feature, k=k, return_distance=True)
         print(f"{k} most similar found in: {perf_counter() - start}")
         
-        return prediction,\
+        return pred_score, prediction,\
             [os.path.join(*path_savory[i].split('\\')[-5:]) for i in similar_s[0]],\
             [os.path.join(*path_unsavory[i].split('\\')[-5:]) for i in similar_u[0]],\
             feature,\
@@ -137,7 +137,7 @@ class CombinedModel(object):
         path_unsavory = [x for x in train_paths if 'unsavory' in x]
         path_savory = np.setdiff1d(train_paths, path_unsavory)
         
-        _, sel_img_emb = comb_model.predict_image(os.path.abspath(selected_image_path))
+        _, _, sel_img_emb = comb_model.predict_image(os.path.abspath(selected_image_path))
         #mean_emb = np.mean([query_image_feature, sel_img_emb], axis=0)
         mean_emb = (np.sum([query_image_feature*float(i), sel_img_emb], axis=0)) / float(i+1)
         

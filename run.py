@@ -67,24 +67,23 @@ def image_handler(tipo:str):
                 print(path)
                 image.save(path)
                 bot.sendImage(chat_id, path, "Ecco! Una faccia!")
-                
+                score = None
                 #if tipo == "/Siamese":
                 #    result = model.predict(path)
                 #    most_similar_s, most_similar_u, feature, dist_s, dist_u = model.cbir(image)
                 if tipo == "/BOVW":
-                    result, most_similar_s, most_similar_u, feature, dist_s, dist_u = BOVW.cbir(bovw_path, path, bovw_savory, bovw_unsavory, train_image_path)
+                    score, result, most_similar_s, most_similar_u, feature, dist_s, dist_u = BOVW.cbir(bovw_path, path, bovw_savory, bovw_unsavory, train_image_path)
                 elif tipo == "/Color":
-                    result, most_similar_s, most_similar_u, feature, dist_s, dist_u = ColorHistogram.cbir(color_path, path, color_savory, color_unsavory, train_image_path)
+                    score, result, most_similar_s, most_similar_u, feature, dist_s, dist_u = ColorHistogram.cbir(color_path, path, color_savory, color_unsavory, train_image_path)
                 elif tipo == "/BOVWColor":
-                    result, most_similar_s, most_similar_u, feature, dist_s, dist_u = CombinedModel.cbir(combined_withus_path, path, None, train_image_path)
+                    score, result, most_similar_s, most_similar_u, feature, dist_s, dist_u = CombinedModel.cbir(combined_withus_path, path, None, train_image_path)
                 elif tipo == "/CNN":
-                    res, most_similar_s, most_similar_u, feature, dist_s, dist_u = cnn.cbir(path, cnn_savory, cnn_unsavory, cnn_image_train_paths)
+                    score, res, most_similar_s, most_similar_u, feature, dist_s, dist_u = cnn.cbir(path, cnn_savory, cnn_unsavory, cnn_image_train_paths)
                     result = []
                     if res[0] == 0:
                         result.append('savory')
                     elif res[0] == 1:
                         result.append('unsavory')
-                    
                     
                 similar_by_chatId[chat_id] = [tipo, feature, np.concatenate((most_similar_s, most_similar_u)), 1] # -> tipo modello utilizzato, img query feature, img result, refine counter
                 print("similar_by_chatId:", similar_by_chatId)
@@ -95,6 +94,10 @@ def image_handler(tipo:str):
                     bot.sendMessage(chat_id, "Biricchino! La tua faccia è cattiva! \N{smiling face with horns}")
                 else:
                     bot.sendMessage(chat_id, "Oops, qualcosa è andato storto! ")
+                    
+                if score is not None:
+                    bot.sendMessage(chat_id, f"Ne sono certo al {np.round(np.max(score), decimals=2)*100}!")
+                    
                 # CBIR
                 bot.sendMessage(
                     chat_id, f"Ora, {name}, Ti farò vedere a chi assomigli di più!"
@@ -112,7 +115,6 @@ def image_handler(tipo:str):
 
 def refineSearch_handler(theBot):
     def my_refine_handler(bot, message, chat_id, name, text):
-        print("refine_handler text:", text)
         temp_dir = tempfile.TemporaryDirectory()
         if chat_id not in similar_by_chatId:
             print("error")
@@ -127,7 +129,6 @@ def refineSearch_handler(theBot):
             model_type, query_img_feature, query_res, refine_counter = similar_by_chatId[chat_id]
             print(model_type, query_img_feature, query_res, refine_counter)
             selected_img = query_res[image_idx-1]
-            print(selected_img)
             # Get mean embedding between query img and selected img
             #if model_type == "/Siamese":
             #    mean_emb, most_similar_s, most_similar_u, dist_s, dist_u = model.refine_search(refine_counter, query_img_feature, selected_img)
@@ -155,7 +156,6 @@ def refineSearch_handler(theBot):
 
 def text_handler(theBot):
     def myTextHandler(bot, message, chat_id, name, text): 
-        print(text)
         print("similar_by_chatId:", similar_by_chatId)
         if text == "/BOVW" or text == "/Color" or text == "/BOVWColor" or text == "/CNN":
             bot.sendMessage(

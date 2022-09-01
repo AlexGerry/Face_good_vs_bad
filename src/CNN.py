@@ -40,7 +40,7 @@ class CNN(object):
     
     
     def __get_featureExtractor(self, model):
-        extractor = models.Model(model.inputs, model.layers[-8].output) # Dense(64,...)
+        extractor = models.Model(model.inputs, model.layers[-8].output)  # -3 o -5 -> 64, -8 -> 5184
         return extractor
     
     
@@ -109,7 +109,8 @@ class CNN(object):
         
             """
         img = self.load_image(image_path)
-        return np.argmax(self.cnn.predict(img, verbose=0), axis=1)
+        prediction = self.cnn.predict(img, verbose=0)
+        return np.max(prediction, axis=1), np.argmax(prediction, axis=1)
     
     
     def cbir(self, image, savory_path:str=None, unsavory_path:str=None, image_train_path:str=None, k:int=5):
@@ -141,7 +142,7 @@ class CNN(object):
         path_savory = np.setdiff1d(train_paths, path_unsavory)
 
         feature = self.extract_feature(image).reshape(1, -1)
-        prediction = self.predict(image)
+        pred_score, prediction = self.predict(image)
 
         savory = np.reshape(savory, (len(savory),-1))
         unsavory = np.reshape(unsavory, (len(unsavory),-1))
@@ -156,7 +157,7 @@ class CNN(object):
         dist_u, similar_u = tree_u.query(feature, k=k, return_distance=True)
         print(f"{k} most similar found in: {perf_counter() - start}")
         
-        return prediction,\
+        return pred_score, prediction,\
             [os.path.join("..", *path_savory[i].split('\\')[-4:]) for i in similar_s[0]],\
             [os.path.join("..", *path_unsavory[i].split('\\')[-4:]) for i in similar_u[0]],\
             feature,\

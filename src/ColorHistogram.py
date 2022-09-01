@@ -77,7 +77,7 @@ class ColorHistogram(object):
         # Compute histogram
         hist = self.compute_histogram(im)
         # Predict
-        return self.forest.predict([hist]), [hist]
+        return self.forest.predict_proba([hist]), self.forest.predict([hist]), [hist]
     
     
     @staticmethod
@@ -96,7 +96,7 @@ class ColorHistogram(object):
         path_unsavory = [x for x in train_paths if 'unsavory' in x]
         path_savory = np.setdiff1d(train_paths, path_unsavory)
         
-        prediction, feature = color_model.predict_image(image_path)
+        pred_score, prediction, feature = color_model.predict_image(image_path)
         start = perf_counter()
         tree_s = KDTree(savory)
         tree_u = KDTree(unsavory)
@@ -107,7 +107,7 @@ class ColorHistogram(object):
         dist_u, similar_u = tree_u.query(feature, k=k, return_distance=True)
         print(f"{k} most similar found in: {perf_counter() - start}")
         
-        return prediction,\
+        return pred_score, prediction,\
                 [os.path.join(*path_savory[i].split('\\')[-5:]) for i in similar_s[0]],\
                 [os.path.join(*path_unsavory[i].split('\\')[-5:]) for i in similar_u[0]],\
                 feature,\
@@ -141,7 +141,7 @@ class ColorHistogram(object):
         path_unsavory = [x for x in train_paths if 'unsavory' in x]
         path_savory = np.setdiff1d(train_paths, path_unsavory)
         
-        _, sel_img_emb = color_model.predict_image(os.path.abspath(selected_image_path))
+        _, _, sel_img_emb = color_model.predict_image(os.path.abspath(selected_image_path))
         #mean_emb = np.mean([query_image_feature, sel_img_emb], axis=0)
         mean_emb = (np.sum([query_image_feature*float(i), sel_img_emb], axis=0)) / float(i+1)
         
