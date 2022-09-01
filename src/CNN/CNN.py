@@ -1,10 +1,9 @@
 import os
-import pickle
-from typing import Tuple
 import tensorflow as tf
 from tensorflow import keras
 import numpy as np
 from keras import models
+from keras.preprocessing import image
 from PIL import Image
 from mtcnn.mtcnn import MTCNN
 from matplotlib.pyplot import imread
@@ -13,25 +12,27 @@ from utils import build_model
 from tqdm import tqdm
 from time import perf_counter
 from sklearn.neighbors import KDTree
+from pathlib import Path
+import dill
+import sys
 
 
 class CNN(object):
     detector = MTCNN()
     
-    def __init__(self, best_model_path:str=None) -> None:
+    def __init__(self, model_path:str=None) -> None:
         
         self.classifier = None
-        self.best_model_path = best_model_path
-        self.cnn = self.__load_model(self.best_model_path)
-        
-       
-        #start = perf_counter()
-        #self.kdtree_s = KDTree(self.savory)
-        #self.kdtree_u = KDTree(self.unsavory)
-        #print(f"KDTree computed in: {perf_counter() - start}")
+        self.model_path = model_path
+        self.cnn = self.__load_model(self.model_path)
+        self.feature_extractor = self.__get_featureExtractor(self.cnn)
 
 
     def __load_model(self, model_path):
+        return models.load_model(model_path)
+    
+    
+    def get_best_model(self, model_path):
         model = None
         tuner = kt.BayesianOptimization(build_model,
                                 objective=kt.Objective('val_loss', direction="min"),
@@ -43,6 +44,61 @@ class CNN(object):
         model = tuner.hypermodel.build(a)
 
         return model
+    
+    
+    def __get_featureExtractor(self, model):
+        extractor = models.Model(model.inputs, model.layers[-8].output) # Dense(64,...)
+        return extractor
+    
+    
+    def load_image(self, image_path):
+        img = tf.keras.utils.load_img(image_path, target_size=(224, 224))
+        input_arr = tf.keras.utils.img_to_array(img) / 255.
+        input_arr = np.array([input_arr])  # Convert single image to a batch.
+        return input_arr
+    
+    
+    def extract_feature(self, image_path):
+        """ This function extract a feature vector from the given image path.
+        
+            Parameters:
+            ----------
+            image: str
+                The input image path
+                
+            Returns:
+            -------
+            features: None
+                The feature vector of the image
+        
+            """
+        img = self.load_image(image_path)
+        return self.feature_extractor.predict(img, verbose=0)[0]
+    
+    
+    def extract_from_folder(self, image_folder_path:str, image_format:str='jpeg', save_path:str=None):
+        if save_path is None: raise ValueError("Save path is none!")
+        os.makedirs(save_path, exist_ok=True)
+        
+        paths = list(Path(image_folder_path).rglob(f"*.{image_format}"))
+        train_features, train_labels, train_path = [], [], []
+        
+        for image_path in (pbar := tqdm(paths)):
+            pbar.set_description(f"Extracting CNN features from image {image_path}...")
+            feat = self.extract_feature(image_path)
+            train_features.append(feat)
+            label = image_path.parts[-2]
+            train_labels.append(label)
+            train_path.append(str(image_path))
+            
+        try:
+            with open(f'{save_path}/cnn_train_features.pkl', 'wb') as f: dill.dump(train_features, f)
+            with open(f'{save_path}/cnn_train_paths.pkl', 'wb') as f: dill.dump(train_path, f)
+            with open(f'{save_path}/cnn_train_labels.pkl', 'wb') as f: dill.dump(train_labels, f)
+        except Exception as e:
+            print(f"{e}: Error during saving...")
+        
+        return train_features, train_labels, train_path
 
     
     def predict(self, image_path:str):
@@ -59,29 +115,11 @@ class CNN(object):
                 The label of the predicted image
         
             """
-        
-        return 
+        img = self.load_image(image_path)
+        return np.argmax(self.cnn.predict(img, verbose=0), axis=1)
     
     
-    def extract_features(self, image):
-        """ This function extract a feature vector from the given image.
-        
-            Parameters:
-            ----------
-            image: None
-                The input image
-                
-            Returns:
-            -------
-            features: None
-                The feature vector of the image
-        
-            """
-        
-        return 
-    
-    
-    def cbir(self, image, k:int=5) -> list:
+    def cbir(self, image, k:int=5):
         """ This function outputs the most k similar image to the one given in input.
         
             Parameters:
@@ -97,15 +135,11 @@ class CNN(object):
                 The k most similar images path
         
             """
-        
-        
         return 
     
     
     def refine_search(self, query_image_feature, selected_image_path:str, k:int=5):
-       
-        
-        return 
+        return
     
     
     @staticmethod
@@ -128,3 +162,13 @@ class CNN(object):
                     res.append(crop)
         return res 
     
+    
+    def save_model(self, path):
+        with open(path, 'wb') as f: dill.dump(self, f)
+        
+    
+    @staticmethod
+    def load_model(path):
+        sys.path.insert(0, "./src")
+        with open(path, 'rb') as f: model = dill.load(f)    
+        return model
