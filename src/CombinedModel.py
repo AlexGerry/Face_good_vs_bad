@@ -84,15 +84,17 @@ class CombinedModel(object):
         return self.forest.predict(descr), descr
     
     
+    @staticmethod
     def cbir(model_path, image_path, features_train_path:str=None, image_train_path:str=None, k:int=5):
         if model_path is None: raise ValueError("Not a valid path!")
         # Load model
         comb_model = CombinedModel.load_model(model_path)
         comb_model.get_models(CombinedModel.load_model('./src/BOVW/bovw/bovw.pkl'), CombinedModel.load_model('./src/Color/color/histogram_model.pkl'))
-        
+        # Load train paths
+        with open(image_train_path, 'rb') as f: train_paths = dill.load(f)
         # load train savory unsavory
-        with open("./src/Combined_descriptors/combined/feature_savory.pkl", 'rb') as f: savory = dill.load(f)
-        with open("./src/Combined_descriptors/combined/feature_unsavory.pkl", 'rb') as f: unsavory = dill.load(f)
+        with open("./src/Combined_descriptors/combined_withus/feature_savory.pkl", 'rb') as f: savory = dill.load(f)
+        with open("./src/Combined_descriptors/combined_withus/feature_unsavory.pkl", 'rb') as f: unsavory = dill.load(f)
         
         # Divide train path
         train_paths = np.asarray(train_paths)
@@ -124,7 +126,8 @@ class CombinedModel(object):
         # Load model
         comb_model = CombinedModel.load_model(model_path)
         comb_model.get_models(CombinedModel.load_model('./src/BOVW/bovw/bovw.pkl'), CombinedModel.load_model('./src/Color/color/histogram_model.pkl'))
-        
+        # Load train paths
+        with open(image_train_path, 'rb') as f: train_paths = dill.load(f)
         # load train savory unsavory
         with open("./src/Combined_descriptors/combined/feature_savory.pkl", 'rb') as f: savory = dill.load(f)
         with open("./src/Combined_descriptors/combined/feature_unsavory.pkl", 'rb') as f: unsavory = dill.load(f)

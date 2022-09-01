@@ -17,10 +17,10 @@ siamese_unsavory = "./src/CNN_training/Features/feature_unsavory.pkl"
 image_train_paths = "./src/CNN_training/Features/path_final.pkl"
 
 # BOVW paths
-bovw_path = './src/BOVW/bovw/bovw.pkl'
-bovw_savory = './src/BOVW/bovw/feature_savory.pkl'
-bovw_unsavory = './src/BOVW/bovw/feature_unsavory.pkl'
-train_image_path = './src/BOVW/bovw/train_paths.pkl'
+bovw_path = './src/BOVW/bovw_withus/bovw.pkl'
+bovw_savory = './src/BOVW/bovw_withus/feature_savory.pkl'
+bovw_unsavory = './src/BOVW/bovw_withus/feature_unsavory.pkl'
+train_image_path = './src/BOVW/bovw_withus/train_paths.pkl'
 
 # Color paths
 color_path = "./src/Color/color_withus/histogram_model.pkl"
@@ -28,7 +28,7 @@ color_savory = "./src/Color/color_withus/feature_savory.pkl"
 color_unsavory = "./src/Color/color_withus/feature_unsavory.pkl"
 
 # Combined paths
-combined_path = "./src/Combined_descriptors/combined/combined_model.pkl"
+combined_withus_path = "./src/Combined_descriptors/combined_withus/combined_model.pkl"
 
 # BotFather Token to exploit created Telegram bot
 TOKEN = "5758831231:AAFqcnYeS79nJ19ZwIoyJWbVv6Cbn6jSbnI"
@@ -66,7 +66,7 @@ def image_handler(tipo:str):
                 elif tipo == "/Color":
                     result, most_similar_s, most_similar_u, feature, dist_s, dist_u = ColorHistogram.cbir(color_path, path, color_savory, color_unsavory, train_image_path)
                 elif tipo == "/BOVWColor":
-                    result, most_similar_s, most_similar_u, feature, dist_s, dist_u = CombinedModel.cbir(combined_path, path, None, None)
+                    result, most_similar_s, most_similar_u, feature, dist_s, dist_u = CombinedModel.cbir(combined_withus_path, path, None, train_image_path)
                     
                 similar_by_chatId[chat_id] = [tipo, feature, np.concatenate((most_similar_s, most_similar_u))] # -> tipo modello utilizzato, img query feature, img result
                 print("similar_by_chatId:", similar_by_chatId)
@@ -118,7 +118,7 @@ def refineSearch_handler(theBot):
             elif model_type == "/Color":
                 mean_emb, most_similar_s, most_similar_u, dist_s, dist_u = ColorHistogram.refine_search(query_img_feature, selected_img, color_path, color_savory, color_unsavory, train_image_path)
             elif model_type == "/BOVWColor":
-                mean_emb, most_similar_s, most_similar_u, dist_s, dist_u = CombinedModel.refine_search(query_img_feature, selected_img, combined_path, None, None)
+                mean_emb, most_similar_s, most_similar_u, dist_s, dist_u = CombinedModel.refine_search(query_img_feature, selected_img, combined_withus_path, None, train_image_path)
             
             # Update similar for iterative refinements
             similar_by_chatId[chat_id][1] = mean_emb
