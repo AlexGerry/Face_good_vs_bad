@@ -50,7 +50,7 @@ class Updater:
                         print("settp refine")
                         if self.photoHandler is None:
                             self.bot.sendMessage(
-                                chat_id, f"Scusa {name}, prima dovresti scegliere un metodo fra quelli a disposizione prima di poter raffinare la ricerca.\nEcco una lista di comandi:\n\t/BOVW\n\t/Siamese\n\t/Color\n\t/BOVWColor"
+                                chat_id, f"Scusa {name}, prima dovresti scegliere un metodo fra quelli a disposizione prima di poter raffinare la ricerca.\nEcco una lista di comandi:\n\t/BOVW\n\t/Color\n\t/BOVWColor\n\t/CNN"
                             )
                         else:
                             self.RefineHandler(self.bot, message, chat_id, name, text)
@@ -60,7 +60,7 @@ class Updater:
                 if messageType == 'photo':
                     if self.photoHandler is None:
                         self.bot.sendMessage(
-                            chat_id, f"Scusa {name}, prima dovresti scegliere un metodo fra quelli a disposizione.\nEcco una lista di comandi:\n\t/BOVW\n\t/Siamese\n\t/Color\n\t/BOVWColor"
+                            chat_id, f"Scusa {name}, prima dovresti scegliere un metodo fra quelli a disposizione.\nEcco una lista di comandi:\n\t/BOVW\n\t/Color\n\t/BOVWColor\n\t/CNN"
                         )
                     else:
                         local_filename = self.bot.getFile(u['message']['photo'][-1]['file_id'])

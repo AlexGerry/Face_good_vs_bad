@@ -3,20 +3,21 @@ from PIL import Image
 import tempfile
 import os
 import numpy as np
-from src.DeepModel import DeepModel
+#from src.DeepModel import DeepModel
 from src.BOVW import BOVW
 from src.ColorHistogram import ColorHistogram
 from src.CombinedModel import CombinedModel
+from src.CNN import CNN
 from src.Preprocess import find_face_and_preprocess
 from mtcnn import MTCNN
 
 
 # Siamese model paths
-classifier_path = "./src/CNN_training/Classifier/svm_final_nu03.sav"
-siamese_embeddings = "./src/CNN_training/final_siamese_embedding_model"
-siamese_savory = "./src/CNN_training/Features/feature_savory.pkl"
-siamese_unsavory = "./src/CNN_training/Features/feature_unsavory.pkl"
-image_train_paths = "./src/CNN_training/Features/path_final.pkl"
+#classifier_path = "./src/CNN_training/Classifier_withus/svm_final_nu03.sav"
+#siamese_embeddings = "./src/CNN_training/final_siamese_embedding_model_withus"
+#siamese_savory = "./src/CNN_training/Features_withus/feature_savory.pkl"
+#siamese_unsavory = "./src/CNN_training/Features_withus/feature_unsavory.pkl"
+#image_train_paths = "./src/CNN_training/Features_withus/path_final.pkl"
 
 # BOVW paths
 bovw_path = './src/BOVW/bovw_withus/bovw.pkl'
@@ -31,6 +32,12 @@ color_unsavory = "./src/Color/color_withus/feature_unsavory.pkl"
 
 # Combined paths
 combined_withus_path = "./src/Combined_descriptors/combined_withus/combined_model.pkl"
+
+# CNN
+cnn_path = './src/CNN/trained_cnn/'
+cnn_savory = './src/CNN/cnn_withus_maxpool/feature_savory.pkl'
+cnn_unsavory = './src/CNN/cnn_withus_maxpool/feature_unsavory.pkl'
+cnn_image_train_paths = "./src/CNN/cnn_withus_maxpool/cnn_train_paths.pkl"
 
 # BotFather Token to exploit created Telegram bot
 TOKEN = "5758831231:AAFqcnYeS79nJ19ZwIoyJWbVv6Cbn6jSbnI"
@@ -61,15 +68,23 @@ def image_handler(tipo:str):
                 image.save(path)
                 bot.sendImage(chat_id, path, "Ecco! Una faccia!")
                 
-                if tipo == "/Siamese":
-                    result = model.predict(path)
-                    most_similar_s, most_similar_u, feature, dist_s, dist_u = model.cbir(image)
-                elif tipo == "/BOVW":
+                #if tipo == "/Siamese":
+                #    result = model.predict(path)
+                #    most_similar_s, most_similar_u, feature, dist_s, dist_u = model.cbir(image)
+                if tipo == "/BOVW":
                     result, most_similar_s, most_similar_u, feature, dist_s, dist_u = BOVW.cbir(bovw_path, path, bovw_savory, bovw_unsavory, train_image_path)
                 elif tipo == "/Color":
                     result, most_similar_s, most_similar_u, feature, dist_s, dist_u = ColorHistogram.cbir(color_path, path, color_savory, color_unsavory, train_image_path)
                 elif tipo == "/BOVWColor":
                     result, most_similar_s, most_similar_u, feature, dist_s, dist_u = CombinedModel.cbir(combined_withus_path, path, None, train_image_path)
+                elif tipo == "/CNN":
+                    res, most_similar_s, most_similar_u, feature, dist_s, dist_u = cnn.cbir(path, cnn_savory, cnn_unsavory, cnn_image_train_paths)
+                    result = []
+                    if res[0] == 0:
+                        result.append('savory')
+                    elif res[0] == 1:
+                        result.append('unsavory')
+                    
                     
                 similar_by_chatId[chat_id] = [tipo, feature, np.concatenate((most_similar_s, most_similar_u)), 1] # -> tipo modello utilizzato, img query feature, img result, refine counter
                 print("similar_by_chatId:", similar_by_chatId)
@@ -114,15 +129,17 @@ def refineSearch_handler(theBot):
             selected_img = query_res[image_idx-1]
             print(selected_img)
             # Get mean embedding between query img and selected img
-            if model_type == "/Siamese":
-                mean_emb, most_similar_s, most_similar_u, dist_s, dist_u = model.refine_search(refine_counter, query_img_feature, selected_img)
-            elif model_type == "/BOVW":
+            #if model_type == "/Siamese":
+            #    mean_emb, most_similar_s, most_similar_u, dist_s, dist_u = model.refine_search(refine_counter, query_img_feature, selected_img)
+            if model_type == "/BOVW":
                 mean_emb, most_similar_s, most_similar_u, dist_s, dist_u = BOVW.refine_search(refine_counter, query_img_feature, selected_img, bovw_path, bovw_savory, bovw_unsavory, train_image_path)
             elif model_type == "/Color":
                 mean_emb, most_similar_s, most_similar_u, dist_s, dist_u = ColorHistogram.refine_search(refine_counter, query_img_feature, selected_img, color_path, color_savory, color_unsavory, train_image_path)
             elif model_type == "/BOVWColor":
                 mean_emb, most_similar_s, most_similar_u, dist_s, dist_u = CombinedModel.refine_search(refine_counter, query_img_feature, selected_img, combined_withus_path, None, train_image_path)
-            
+            elif model_type == "/CNN":
+                mean_emb, most_similar_s, most_similar_u, dist_s, dist_u = cnn.refine_search(refine_counter, query_img_feature, selected_img, cnn_savory, cnn_unsavory, cnn_image_train_paths)
+
             # Update similar for iterative refinements
             similar_by_chatId[chat_id][1] = mean_emb
             similar_by_chatId[chat_id][2] = np.concatenate((most_similar_s, most_similar_u))
@@ -140,7 +157,7 @@ def text_handler(theBot):
     def myTextHandler(bot, message, chat_id, name, text): 
         print(text)
         print("similar_by_chatId:", similar_by_chatId)
-        if text == "/BOVW" or text == "/Siamese" or text == "/Color" or text == "/BOVWColor":
+        if text == "/BOVW" or text == "/Color" or text == "/BOVWColor" or text == "/CNN":
             bot.sendMessage(
                 chat_id, f"Eccomi {name}, quando sei pronto/a inviami una foto!"
             )
@@ -149,7 +166,7 @@ def text_handler(theBot):
             bot.sendMessage(
                 chat_id, 
                 f"Scusa {name}, ma non ho capito...\
-                \nEcco una lista di comandi:\n\t/BOVW\n\t/Siamese\n\t/Color\n\t/BOVWColor\n\n \
+                \nEcco una lista di comandi:\n\t/BOVW\n\t/Color\n\t/BOVWColor\n\t/CNN\n\n \
                 Oppure, dopo aver utilizzato un metodo, scrivi / seguito da un numero (1-10) per raffinare la ricerca."
             )
     return myTextHandler
@@ -157,15 +174,17 @@ def text_handler(theBot):
 
 if __name__ == '__main__':
     # Load the model which will extract features from the given image
-    model = DeepModel(
-        classifier_path, 
-        siamese_embeddings, 
-        image_train_paths, 
-        siamese_savory,
-        siamese_unsavory, 
-        (200, 200)
-        )
+    #model = DeepModel(
+    #    classifier_path, 
+    #    siamese_embeddings, 
+    #    image_train_paths, 
+    #    siamese_savory,
+    #    siamese_unsavory, 
+    #    (200, 200)
+    #    )
     detector = MTCNN()
+    cnn = CNN(cnn_path)
+    
     bot = Updater(TOKEN)
     
     # Implement command handler

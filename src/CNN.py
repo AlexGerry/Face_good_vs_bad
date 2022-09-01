@@ -40,7 +40,7 @@ class CNN(object):
     
     
     def __get_featureExtractor(self, model):
-        extractor = models.Model(model.inputs, model.layers[-3].output) # Dense(64,...)
+        extractor = models.Model(model.inputs, model.layers[-8].output) # Dense(64,...)
         return extractor
     
     
@@ -176,8 +176,7 @@ class CNN(object):
         path_unsavory = [x for x in train_paths if 'unsavory' in x]
         path_savory = np.setdiff1d(train_paths, path_unsavory)
         
-        img = self.load_image(selected_image_path)
-        sel_img_emb = self.extract_feature(img).reshape(1, -1)
+        sel_img_emb = self.extract_feature(selected_image_path).reshape(1, -1)
         #mean_emb = np.mean([query_image_feature, sel_img_emb], axis=0)
         mean_emb = (np.sum([query_image_feature, sel_img_emb], axis=0) * float(i)) / float(i+1)
         
