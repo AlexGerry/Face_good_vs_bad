@@ -7,6 +7,8 @@ from src.DeepModel import DeepModel
 from src.BOVW import BOVW
 from src.ColorHistogram import ColorHistogram
 from src.CombinedModel import CombinedModel
+from src.Preprocess import find_face_and_preprocess
+from mtcnn import MTCNN
 
 
 # Siamese model paths
@@ -48,10 +50,11 @@ def image_handler(tipo:str):
             chat_id, f"{name}, tieniti forte, ora ti dirò se sei un birbantello!\nLasciami prima cercare il volto..."
         )
         
-        faces = DeepModel.find_faces(image_name)
+        faces = find_face_and_preprocess(image_name, detector)
         
         if len(faces) >= 1:
             for i, f in enumerate(faces):
+                f = (f*255).astype('uint8')
                 image = Image.fromarray(f)
                 path = os.path.join(temp_dir.name, str(i)+".jpeg")
                 print(path)
@@ -161,6 +164,7 @@ if __name__ == '__main__':
         siamese_unsavory, 
         (200, 200)
         )
+    detector = MTCNN()
     bot = Updater(TOKEN)
     
     # Implement command handler
