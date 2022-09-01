@@ -81,7 +81,7 @@ class ColorHistogram(object):
     
     
     @staticmethod
-    def cbir(model_path, image_path, savory_path:str=None, unsavory_path:str=None, image_train_path:str=None, k:int=5   ):
+    def cbir(model_path, image_path, savory_path:str=None, unsavory_path:str=None, image_train_path:str=None, k:int=5):
         if savory_path is None or unsavory_path is None or model_path is None or image_train_path is None: raise ValueError("Not a valid path!")
         # Load train bovw
         with open(savory_path, 'rb') as f: savory = dill.load(f)
