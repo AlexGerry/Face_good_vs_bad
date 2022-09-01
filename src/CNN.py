@@ -178,7 +178,7 @@ class CNN(object):
         
         sel_img_emb = self.extract_feature(selected_image_path).reshape(1, -1)
         #mean_emb = np.mean([query_image_feature, sel_img_emb], axis=0)
-        mean_emb = (np.sum([query_image_feature, sel_img_emb], axis=0) * float(i)) / float(i+1)
+        mean_emb = (np.sum([query_image_feature*float(i), sel_img_emb], axis=0)) / float(i+1)
         
         savory = np.reshape(savory, (len(savory),-1))
         unsavory = np.reshape(unsavory, (len(unsavory),-1))

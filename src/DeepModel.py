@@ -159,7 +159,7 @@ class DeepModel(object):
         img = Image.open(selected_image_path)
         sel_img_emb = self.extract_features(img)
         #mean_emb = np.mean([query_image_feature, sel_img_emb], axis=0)
-        mean_emb = (np.sum([query_image_feature, sel_img_emb], axis=0) * float(i)) / float(i+1)
+        mean_emb = (np.sum([query_image_feature*float(i), sel_img_emb], axis=0)) / float(i+1)
                 
         dist_s, similar_s = self.kdtree_s.query(mean_emb, k=k, return_distance=True)
         dist_u, similar_u = self.kdtree_u.query(mean_emb, k=k, return_distance=True)
