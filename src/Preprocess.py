@@ -76,9 +76,10 @@ def find_face_and_preprocess(path, detector):
         face = detector.detect_faces(crop)
         if len(face) == 0:
             face, crop, rotation = try_rotate(crop, detector)
-            im = skimage.transform.rotate(im, rotation, resize=True)
-            face = detector.detect_faces(im*255)
-            [X,Y,W,H] = face[0]['box']
+            if len(face) == 1:
+                im = skimage.transform.rotate(im, rotation, resize=True)
+                face = detector.detect_faces(im*255)
+                [X,Y,W,H] = face[0]['box']
         if len(face) == 1:
             base = len(im[:,1,1])
             h = len(im[1,:,1])
