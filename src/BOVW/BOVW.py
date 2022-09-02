@@ -20,7 +20,7 @@ class BOVW(object):
     def __init__(self, num_cluster:int=100, step_size:int=15, img_dim:int=300) -> None:
         self.num_clusters = num_cluster
         self.kmeans = KMeans(n_clusters = self.num_clusters, random_state = 42)
-        self.model = SVC(random_state=42)
+        self.model = SVC(random_state=42, probability=True)
         self.knn = KNeighborsClassifier()
         self.forest = RandomForestClassifier(random_state=42)
         self.step_size = step_size
