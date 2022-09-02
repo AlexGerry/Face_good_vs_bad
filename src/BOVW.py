@@ -99,7 +99,7 @@ class BOVW(object):
         # Compute histogram
         bovw_hist = self.compute_histogram(sifts, [1])
         # Predict
-        return None, self.model.predict(bovw_hist), bovw_hist
+        return self.model.predict_proba(bovw_hist), self.model.predict(bovw_hist), bovw_hist
     
     
     @staticmethod
@@ -118,7 +118,7 @@ class BOVW(object):
         path_unsavory = [x for x in train_paths if 'unsavory' in x]
         path_savory = np.setdiff1d(train_paths, path_unsavory)
         
-        _, prediction, feature = bovw.predict_image(image_path)
+        pred_score, prediction, feature = bovw.predict_image(image_path)
         start = perf_counter()
         tree_s = KDTree(savory)
         tree_u = KDTree(unsavory)
@@ -129,11 +129,36 @@ class BOVW(object):
         dist_u, similar_u = tree_u.query(feature, k=k, return_distance=True)
         print(f"{k} most similar found in: {perf_counter() - start}")
         
-        return None, prediction,\
+        return pred_score, prediction,\
             [os.path.join(*path_savory[i].split('\\')[-5:]) for i in similar_s[0]],\
             [os.path.join(*path_unsavory[i].split('\\')[-5:]) for i in similar_u[0]],\
             feature,\
             dist_s, dist_u
+            
+    
+    @staticmethod
+    def cbir_performance(model_path, image_path, features_path:str=None, image_train_path:str=None, k:int=5):
+        if features_path is None or model_path is None or image_train_path is None: raise ValueError("Not a valid path!")
+        # Load train bovw
+        with open(features_path, 'rb') as f: features = dill.load(f)
+        # Load train paths
+        with open(image_train_path, 'rb') as f: train_paths = dill.load(f)
+        # Load model
+        bovw = BOVW.load_model(model_path)
+                
+        pred_score, prediction, feature = bovw.predict_image(image_path)
+        start = perf_counter()
+        tree = KDTree(features)
+        print(f"KDTree computed in: {perf_counter() - start}")
+        
+        start = perf_counter()
+        dist, similar = tree.query(feature, k=k, return_distance=True)
+        print(f"{k} most similar found in: {perf_counter() - start}")
+        
+        return pred_score, prediction,\
+                [os.path.join(*train_paths[i].split('\\')[-5:]) for i in similar[0]],\
+                feature,\
+                dist
     
     
     def save_model(self, path):

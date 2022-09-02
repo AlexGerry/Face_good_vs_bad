@@ -162,6 +162,32 @@ class CNN(object):
             [os.path.join("..", *path_unsavory[i].split('\\')[-4:]) for i in similar_u[0]],\
             feature,\
             dist_s, dist_u  
+            
+            
+    def cbir_performance(self, image, features_path:str=None, image_train_path:str=None, k:int=5):
+        if features_path is None or image_train_path is None: raise ValueError("Not a valid path!")
+        # Load train bovw
+        with open(features_path, 'rb') as f: features = dill.load(f)
+        # Load train paths
+        with open(image_train_path, 'rb') as f: train_paths = dill.load(f)
+                
+        feature = self.extract_feature(image).reshape(1, -1)
+        pred_score, prediction = self.predict(image)
+
+        features = np.reshape(features, (len(features),-1))
+        
+        start = perf_counter()
+        tree = KDTree(features)
+        print(f"KDTree computed in: {perf_counter() - start}")
+        
+        start = perf_counter()
+        dist, similar = tree.query(feature, k=k, return_distance=True)
+        print(f"{k} most similar found in: {perf_counter() - start}")
+        
+        return pred_score, prediction,\
+                [os.path.join(*train_paths[i].split('\\')[-5:]) for i in similar[0]],\
+                feature,\
+                dist
     
     
     def refine_search(self, i, query_image_feature, selected_image_path:str, savory_path:str=None, unsavory_path:str=None, image_train_path:str=None, k:int=5):

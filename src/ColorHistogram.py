@@ -112,6 +112,31 @@ class ColorHistogram(object):
                 [os.path.join(*path_unsavory[i].split('\\')[-5:]) for i in similar_u[0]],\
                 feature,\
                 dist_s, dist_u
+                
+    
+    @staticmethod
+    def cbir_performance(model_path, image_path, features_path:str=None, image_train_path:str=None, k:int=5):
+        if features_path is None or model_path is None or image_train_path is None: raise ValueError("Not a valid path!")
+        # Load train bovw
+        with open(features_path, 'rb') as f: features = dill.load(f)
+        # Load train paths
+        with open(image_train_path, 'rb') as f: train_paths = dill.load(f)
+        # Load model
+        color_model = ColorHistogram.load_model(model_path)
+                
+        pred_score, prediction, feature = color_model.predict_image(image_path)
+        start = perf_counter()
+        tree = KDTree(features)
+        print(f"KDTree computed in: {perf_counter() - start}")
+        
+        start = perf_counter()
+        dist, similar = tree.query(feature, k=k, return_distance=True)
+        print(f"{k} most similar found in: {perf_counter() - start}")
+        
+        return pred_score, prediction,\
+                [os.path.join(*train_paths[i].split('\\')[-5:]) for i in similar[0]],\
+                feature,\
+                dist
     
     
     def save_model(self, path):

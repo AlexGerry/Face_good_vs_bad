@@ -89,7 +89,7 @@ class CombinedModel(object):
         if model_path is None: raise ValueError("Not a valid path!")
         # Load model
         comb_model = CombinedModel.load_model(model_path)
-        comb_model.get_models(CombinedModel.load_model('./src/BOVW/bovw/bovw.pkl'), CombinedModel.load_model('./src/Color/color/histogram_model.pkl'))
+        comb_model.get_models(CombinedModel.load_model('./src/BOVW/bovw_withus/bovw.pkl'), CombinedModel.load_model('./src/Color/color_withus/histogram_model.pkl'))
         # Load train paths
         with open(image_train_path, 'rb') as f: train_paths = dill.load(f)
         # load train savory unsavory
@@ -118,6 +118,31 @@ class CombinedModel(object):
             [os.path.join(*path_unsavory[i].split('\\')[-5:]) for i in similar_u[0]],\
             feature,\
             dist_s, dist_u
+            
+    
+    @staticmethod
+    def cbir_performance(model_path, image_path, features_path:str=None, image_train_path:str=None, k:int=5):
+        if model_path is None or image_train_path is None: raise ValueError("Not a valid path!")
+        # Load train paths
+        with open(image_train_path, 'rb') as f: train_paths = dill.load(f)
+        # Load model
+        comb_model = CombinedModel.load_model(model_path)
+        comb_model.get_models(CombinedModel.load_model('./src/BOVW/bovw_withus/bovw.pkl'), CombinedModel.load_model('./src/Color/color_withus/histogram_model.pkl'))
+
+                
+        pred_score, prediction, feature = comb_model.predict_image(image_path)
+        start = perf_counter()
+        tree = KDTree(comb_model.features)
+        print(f"KDTree computed in: {perf_counter() - start}")
+        
+        start = perf_counter()
+        dist, similar = tree.query(feature, k=k, return_distance=True)
+        print(f"{k} most similar found in: {perf_counter() - start}")
+        
+        return pred_score, prediction,\
+                [os.path.join(*train_paths[i].split('\\')[-5:]) for i in similar[0]],\
+                feature,\
+                dist
     
     
     @staticmethod
