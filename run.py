@@ -96,7 +96,7 @@ def image_handler(tipo:str):
                     bot.sendMessage(chat_id, "Oops, qualcosa è andato storto! ")
                     
                 if score is not None:
-                    bot.sendMessage(chat_id, f"Ne sono certo al {np.round(np.max(score), decimals=2)*100}!")
+                    bot.sendMessage(chat_id, f"Ne sono certo al {np.round(np.max(score), decimals=2)*100}%!")
                     
                 # CBIR
                 bot.sendMessage(

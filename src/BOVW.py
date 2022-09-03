@@ -209,7 +209,7 @@ class BOVW(object):
         
         _, _, sel_img_emb = bovw.predict_image(os.path.abspath(selected_image_path))
         #mean_emb = np.mean([query_image_feature, sel_img_emb], axis=0)
-        mean_emb = (np.sum([query_image_feature*float(i), sel_img_emb], axis=0)) / float(i+1)
+        mean_emb = (np.sum([np.multiply(query_image_feature, float(i)), sel_img_emb], axis=0)) / float(i+1)
         
         tree_s = KDTree(savory)
         tree_u = KDTree(unsavory)

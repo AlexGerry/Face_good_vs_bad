@@ -150,12 +150,12 @@ class CombinedModel(object):
         if model_path is None: raise ValueError("Not a valid path!")
         # Load model
         comb_model = CombinedModel.load_model(model_path)
-        comb_model.get_models(CombinedModel.load_model('./src/BOVW/bovw/bovw.pkl'), CombinedModel.load_model('./src/Color/color/histogram_model.pkl'))
+        comb_model.get_models(CombinedModel.load_model('./src/BOVW/bovw_withus/bovw.pkl'), CombinedModel.load_model('./src/Color/color_withus/histogram_model.pkl'))
         # Load train paths
         with open(image_train_path, 'rb') as f: train_paths = dill.load(f)
         # load train savory unsavory
-        with open("./src/Combined_descriptors/combined/feature_savory.pkl", 'rb') as f: savory = dill.load(f)
-        with open("./src/Combined_descriptors/combined/feature_unsavory.pkl", 'rb') as f: unsavory = dill.load(f)
+        with open("./src/Combined_descriptors/combined_withus/feature_savory.pkl", 'rb') as f: savory = dill.load(f)
+        with open("./src/Combined_descriptors/combined_withus/feature_unsavory.pkl", 'rb') as f: unsavory = dill.load(f)
         
         # Divide train path
         train_paths = np.asarray(train_paths)
@@ -164,7 +164,7 @@ class CombinedModel(object):
         
         _, _, sel_img_emb = comb_model.predict_image(os.path.abspath(selected_image_path))
         #mean_emb = np.mean([query_image_feature, sel_img_emb], axis=0)
-        mean_emb = (np.sum([query_image_feature*float(i), sel_img_emb], axis=0)) / float(i+1)
+        mean_emb = (np.sum([np.multiply(query_image_feature, float(i)), sel_img_emb], axis=0)) / float(i+1)
         
         tree_s = KDTree(savory)
         tree_u = KDTree(unsavory)
