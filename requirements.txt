@@ -4,3 +4,8 @@ matplotlib
 pandas
 sklearn
 seaborn
+mtcnn
+opencv-python
+dill
+scipy
+scikit-image

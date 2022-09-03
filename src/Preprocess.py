@@ -1,7 +1,7 @@
 import skimage
 from skimage.io import imread
 import numpy as np
-from mtcnn.mtcnn import MTCNN
+
 
 def preprocess_all(im):
     ycbcr = skimage.color.rgb2ycbcr(im)
