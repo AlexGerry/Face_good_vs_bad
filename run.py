@@ -59,7 +59,7 @@ def image_handler(tipo:str):
         
         faces = find_face_and_preprocess(image_name, detector)
         
-        if len(faces) >= 1:
+        if faces is not None and len(faces) >= 1:
             for i, f in enumerate(faces):
                 f = (f*255).astype('uint8')
                 image = Image.fromarray(f)
